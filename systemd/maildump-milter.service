@@ -1,0 +1,17 @@
+[Unit]
+Description=Maildump Milter
+After=network.target
+
+[Service]
+WorkingDirectory=/var/spool/postfix
+SyslogIdentifier=maildump
+
+ExecStart=/usr/sbin/maildump
+KillMode=process
+Restart=on-failure
+
+User=postfix
+Type=process
+
+[Install]
+WantedBy=multi-user.target
