@@ -42,13 +42,14 @@ string envRcptHeader = "X-ACHRIVED-RCPT";
  * Data structure assigned to each MILTER-Session.
  */
 struct SessionData {
-    char *fileName = NULL;
+    char *fileName = NULL; //basename
+    char *filePath = NULL; //full path
     FILE *file = NULL;
 };
 
 /**
  * Get or create SessionData assigned to given context.
- * Opens file to write message to.
+ * Opens file to write message to (with temporary name).
  */
 SessionData* get_session_data(SMFICTX *ctx) {
     
@@ -57,26 +58,30 @@ SessionData* get_session_data(SMFICTX *ctx) {
     if( sessionData == NULL ) {
         cout << "Create new session: " << ctx << endl;
         sessionData = (SessionData*) malloc(sizeof(SessionData));
-        sessionData->fileName = (char*) malloc(1024);
         
-        std::sprintf(sessionData->fileName, "%s/%jd-%i", const_cast<char*>(outputDir.c_str()), (intmax_t)time(0), std::rand());
+        sessionData->fileName = (char*) malloc(64);
+        sprintf(sessionData->fileName, "%jd-%i", (intmax_t)time(0), std::rand());
         
-        sessionData->file = fopen(sessionData->fileName, "w");
+        sessionData->filePath = (char*) malloc(1024);
+        sprintf(sessionData->filePath, "%s/.%s.filepart", const_cast<char*>(outputDir.c_str()), sessionData->fileName);
+        
+        
+        sessionData->file = fopen(sessionData->filePath, "w");
         if( sessionData->file == NULL ) {
-            cerr << "Failed to open file (w): " << sessionData->fileName;
+            cerr << "Failed to open file (w): " << sessionData->filePath;
         }
         
         smfi_setpriv(ctx, sessionData);
     }
     
-    //cout << "Session: " << ctx << ", File=" << sessionData->fileName << endl;
+    //cout << "Session: " << ctx << ", File=" << sessionData->filePath << endl;
     
     return sessionData;
 }
 
 /**
  * Free SessionData resources.
- * Closes message file.
+ * Closes message file, rename file from tempoary name to final name.
  */
 void cleanup_session_data(SMFICTX *ctx) {
 
@@ -84,13 +89,22 @@ void cleanup_session_data(SMFICTX *ctx) {
     
     if( sessionData != NULL ) {
         
+        cout << "Cleanup session: " << ctx << ", File=" << sessionData->filePath << endl;
+        
         if( sessionData->file != NULL ) {
             if( fclose(sessionData->file) != 0 ) {
-                cerr << "Failed to close file: " << sessionData->fileName << endl;
+                cerr << "Failed to close file: " << sessionData->filePath << endl;
             }
+            char *finalFileName = (char*) malloc(sizeof(sessionData->fileName) + sizeof(sessionData->filePath));
+            sprintf(finalFileName, "%s/%s", const_cast<char*>(outputDir.c_str()), sessionData->fileName);
+            link(sessionData->filePath, finalFileName);
+	        unlink(sessionData->filePath);
+            
+            cout << "Created file: " << finalFileName << endl;
+            free(finalFileName);
         }
         
-        cout << "Cleanup session: " << ctx << ", File=" << sessionData->fileName << endl;
+        free(sessionData->filePath);
         free(sessionData->fileName);
         free(sessionData);
         smfi_setpriv(ctx, NULL);
@@ -196,12 +210,12 @@ sfsistat mlfi_abort(SMFICTX *ctx) {
     
     SessionData *sessionData = get_session_data(ctx);
     if( sessionData != NULL && sessionData->file != NULL ) {
-        cout << ctx << ": Close and remove " << sessionData->fileName << endl;
+        cout << ctx << ": Close and remove " << sessionData->filePath << endl;
         if( fclose(sessionData->file) != 0 ) {
-            cerr << "Failed to close file: " << sessionData->fileName << endl;
+            cerr << "Failed to close file: " << sessionData->filePath << endl;
         }
-        if( remove(sessionData->fileName) != 0 ) {
-            cerr << "Failed to remove file: " << sessionData->fileName << endl;
+        if( remove(sessionData->filePath) != 0 ) {
+            cerr << "Failed to remove file: " << sessionData->filePath << endl;
         }
         sessionData->file = NULL;
     }
