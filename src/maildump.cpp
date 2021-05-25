@@ -57,7 +57,7 @@ SessionData* get_session_data(SMFICTX *ctx) {
     
     if( sessionData == NULL ) {
         cout << "Create new session: " << ctx << endl;
-        sessionData = (SessionData*) malloc(sizeof(SessionData));
+        sessionData = (SessionData*) malloc(sizeof(sessionData));
         
         sessionData->fileName = (char*) malloc(64);
         sprintf(sessionData->fileName, "%jd-%i", (intmax_t)time(0), std::rand());
@@ -95,7 +95,8 @@ void cleanup_session_data(SMFICTX *ctx) {
             if( fclose(sessionData->file) != 0 ) {
                 cerr << "Failed to close file: " << sessionData->filePath << endl;
             }
-            char *finalFileName = (char*) malloc(sizeof(sessionData->fileName) + sizeof(sessionData->filePath));
+            
+            char *finalFileName = (char*) malloc(1024);
             sprintf(finalFileName, "%s/%s", const_cast<char*>(outputDir.c_str()), sessionData->fileName);
             link(sessionData->filePath, finalFileName);
 	        unlink(sessionData->filePath);
