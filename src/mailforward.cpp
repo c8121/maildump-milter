@@ -21,9 +21,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <vector>
 #include <iostream>
+#include <fstream>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h> 
@@ -64,7 +67,7 @@ string resolve(const char *serverName) {
         }
         
         inet_ntop( result->ai_family, ptr, addrstr, 255 );
-        cout << "Resolve " << serverName << ": " << addrstr << endl;
+        //cout << "Resolve " << serverName << ": " << addrstr << endl;
         resolvedName = string(addrstr);
         
         result = result->ai_next;
@@ -109,22 +112,33 @@ int open_socket(const char *serverName, int port) {
 }
 
 /**
- * 
+ * Read and check server response.
+ * Return -1 on error response, 0 otherwise
  */
-void read_line(int socket) {
+int read_line(int socket) {
 
+    string response = "";
     char c;
     while( true ) {
+        
         int n = read(socket, &c, 1);
         if( n < 1 ) {
             cout << endl;
-            return;
+            return -1;
         }
-        cout << c;
+        
         if( c == '\n' ) {
-            cout << endl;
-            return;
+            
+            //cout << "< " << response << endl;
+            
+            if( response.size() > 0 && (response.at(0) == '2' || response.at(0) == '3') ) {
+                return 0;
+            } else {
+                return -1;
+            }
         }
+        
+        response.push_back(c);
     }
     
 }
@@ -132,55 +146,144 @@ void read_line(int socket) {
 /**
  * 
  */
-void send_command(int socket, string command) {
-    write(socket, const_cast<char*>(command.c_str()), command.length());
+void send_line(int socket, string command) {
+    
+    //cout << "> " << command << endl;
+    
+    if( !command.empty() ) {
+        write(socket, const_cast<char*>(command.c_str()), command.length());
+    }
     write(socket, "\r\n", 2);
 }
 
+/**
+ * 
+ */
+void usage_message() {
+    cout << "Usage: mailforward <host> <port> <filename> <from> <to>" << endl;
+}
 
 /**
  * 
  */
 int main(int argc, char *argv[]) {
     
-    if (argc < 4) {
-       cerr << "Usage: " << argv[0] << " <host> <port> <filename>" << endl;
-       exit(EX_USAGE);
+    if (argc < 6) {
+        cerr << "Missing arguments" << endl;
+        usage_message();
+        exit(EX_USAGE);
     }
+    
+    // Check if file exists
+    string fileName = string(argv[3]);
+    struct stat fileStat;
+    if( stat(fileName.c_str(), &fileStat) != 0 ) {
+        cerr << "File not found: " << fileName << endl;
+        exit(EX_DATAERR);
+    }
+    
+    // Check sender and recipient
+    string from = string(argv[4]);
+    string to = string(argv[5]);
+    if( from.empty() || to.empty() ) {
+        cerr << "Parameter 'from' and 'to' cannot be empty" << endl;
+        usage_message();
+        exit(EX_USAGE);
+    }
+    
+    // Read hostname
+    char buf[128] {0};
+    gethostname(buf, sizeof(buf));
+    string heloName = string(buf);
+    
+    
+    ifstream fileInput(fileName);
+    if( !fileInput.is_open() ) {
+        cerr << "Failed to open file: " << fileName << endl;
+        exit(EX_IOERR);
+    }
+    
+    // As we are sending a file as it is right after the SMTP DATA command, 
+    // check if the given file has headers and body.
+    vector<string> headers(0);
+    vector<string> body(0);
+    string line;
+    vector<string> *readInto = &headers;
+    while(getline(fileInput, line)) {
+        
+        if( line.empty() ) {
+            readInto = &body;
+        } else {
+        
+            //read up to 3 body lines here
+            //rest will be read in smtp dialog below
+            if( body.size() > 3 ) {
+                break;
+            }
+            
+            readInto->push_back(line);
+        }
+    }
+    
+    if( headers.size() == 0 || body.size() == 0 ) {
+        cerr << "Header does not seem to have headers or body (" << headers.size() << " header lines, " << body.size() << " body lines)" << endl;
+        fileInput.close();
+        exit(EX_DATAERR);
+    }
+    
+    //cout << "Message with " << headers.size() << " headers" << endl;
     
     int socket = open_socket(argv[1], atoi(argv[2]));
     if( socket > 0 ) {
         
-        send_command(socket, "helo me");
-        read_line(socket);
+        send_line(socket, "helo " + heloName);
+        if( read_line(socket) != 0 ) {
+            exit(EX_IOERR);
+        }
         
-        send_command(socket, "mail from: <me>");
-        read_line(socket);
+        send_line(socket, "mail from: <" + from + ">");
+        if( read_line(socket) != 0 ) {
+            exit(EX_IOERR);
+        }
         
-        send_command(socket, "rcpt to: <root>");
-        read_line(socket);
+        send_line(socket, "rcpt to: <" + to + ">");
+        if( read_line(socket) != 0 ) {
+            exit(EX_IOERR);
+        }
         
-        // TODO (WIP): Send File
+        send_line(socket, "data");
+        if( read_line(socket) != 0 ) {
+            exit(EX_IOERR);
+        }
         
-        //TEST 
-        /*send_command(socket, "data");
-        read_line(socket);
+        for( int i=0 ; i < headers.size() ; i++ ) {
+            send_line(socket, headers[i]);
+        }
         
+        send_line(socket, "");
         
-        send_command(socket, "Subject: Test");
-        send_command(socket, "");
-        send_command(socket, "Test");
-        send_command(socket, ".");
+        for( int i=0 ; i < body.size() ; i++ ) {
+            send_line(socket, body[i]);
+        }
         
+        while(getline(fileInput, line)) {
+            send_line(socket, line);
+        }
         
-        send_command(socket, "quit");
-        read_line(socket);*/
+        send_line(socket, ".");
+        if( read_line(socket) != 0 ) {
+            exit(EX_IOERR);
+        }
         
-        send_command(socket, "rset");
-        read_line(socket);
+        send_line(socket, "quit");
+        if( read_line(socket) != 0 ) {
+            exit(EX_IOERR);
+        }
         
         close(socket);
     }
+    
+    fileInput.close();
     
 }
 
