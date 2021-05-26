@@ -60,7 +60,7 @@ SessionData* get_session_data(SMFICTX *ctx) {
         sessionData = (SessionData*) malloc(sizeof(sessionData));
         
         sessionData->fileName = (char*) malloc(64);
-        sprintf(sessionData->fileName, "%jd-%i", (intmax_t)time(0), std::rand());
+        sprintf(sessionData->fileName, "%jd-%i.msg", (intmax_t)time(0), std::rand());
         
         sessionData->filePath = (char*) malloc(1024);
         sprintf(sessionData->filePath, "%s/.%s.filepart", const_cast<char*>(outputDir.c_str()), sessionData->fileName);
@@ -74,7 +74,7 @@ SessionData* get_session_data(SMFICTX *ctx) {
         smfi_setpriv(ctx, sessionData);
     }
     
-    //cout << "Session: " << ctx << ", File=" << sessionData->filePath << endl;
+    cout << "Session: " << ctx << ", File=" << sessionData->filePath << endl;
     
     return sessionData;
 }
