@@ -1,5 +1,10 @@
 # Build
 
-apt install libmilter-dev
+## Requirements
 
-gcc -o maildump maildump.cpp /usr/lib/x86_64-linux-gnu/libmilter.a -lstdc++ -pthread
+ * libmilter-dev
+
+ 
+## Build
+
+Run ./build.sh
