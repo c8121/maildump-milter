@@ -34,7 +34,54 @@ using namespace std;
 /**
  * 
  */
+string resolve(const char *serverName) {
+
+    string resolvedName {""};
+    
+    struct addrinfo hints;
+    memset (&hints, 0, sizeof (hints));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags |= AI_CANONNAME;
+    
+    
+    struct addrinfo *info;
+    int r = getaddrinfo(serverName, NULL, &hints, &info);
+    if( r != 0 ) {
+        cout << "Cannot resolve host: " << serverName << endl;
+        return resolvedName;
+    }
+    
+    struct addrinfo *result = info;
+    char addrstr[255];
+    while( result ) {
+    
+        void *ptr;
+        if( result->ai_family == AF_INET ) {
+            ptr = &((struct sockaddr_in *) result->ai_addr)->sin_addr;
+        } else if( result->ai_family == AF_INET6 ) {
+            ptr = &((struct sockaddr_in6 *) result->ai_addr)->sin6_addr;
+        }
+        
+        inet_ntop( result->ai_family, ptr, addrstr, 255 );
+        cout << "Resolve " << serverName << ": " << addrstr << endl;
+        resolvedName = string(addrstr);
+        
+        result = result->ai_next;
+    }
+    
+    return resolvedName;
+}
+
+/**
+ * 
+ */
 int open_socket(const char *serverName, int port) {
+    
+    string ip = resolve(serverName);
+    if( ip.empty() ) {
+        return -1;
+    }
     
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if( sockfd < 0 ) {
@@ -46,7 +93,7 @@ int open_socket(const char *serverName, int port) {
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     
-    if(inet_pton(AF_INET, serverName, &serv_addr.sin_addr)<=0) {
+    if(inet_pton(AF_INET, const_cast<char*>(ip.c_str()), &serv_addr.sin_addr)<=0) {
         cerr << "Invalid address/ Address not supported: " << serverName << endl;
         close(sockfd);
         return -1;
@@ -97,7 +144,7 @@ void send_command(int socket, string command) {
 int main(int argc, char *argv[]) {
     
     if (argc < 4) {
-       cerr << "Usage: " << argv[0] << " <ip> <port> <filename>" << endl;
+       cerr << "Usage: " << argv[0] << " <host> <port> <filename>" << endl;
        exit(EX_USAGE);
     }
     
