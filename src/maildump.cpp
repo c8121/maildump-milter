@@ -312,6 +312,14 @@ int main(int argc, char *argv[]) {
     //Create seed for rand() used in get_session_data(...) above.
     std::srand(std::time(nullptr));
 
+    //Check if socket file exists and try to remove before bind
+    struct stat fileStat;
+    if( stat(const_cast<char*>(socketPath.c_str()), &fileStat) == 0 ) {
+        cout << "Socket exists, remove: " << socketPath << endl;
+        unlink(const_cast<char*>(socketPath.c_str()));
+    }
+    
+    
     cout << "Bind to " << socketPath << endl;
     smfi_setconn(const_cast<char*>(socketPath.c_str()));
 
@@ -324,6 +332,11 @@ int main(int argc, char *argv[]) {
         cout << "smfi_main failed\n";
         exit(EX_UNAVAILABLE);
     }
+    
+    //Cleanup    
+    unlink(const_cast<char*>(socketPath.c_str()));
+    
+    cout << "Exit." << endl;
     
 }
 
