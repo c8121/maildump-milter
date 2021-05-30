@@ -140,6 +140,7 @@ int read_line(int socket) {
             if( response.size() > 0 && (response.at(0) == '2' || response.at(0) == '3') ) {
                 return 0;
             } else {
+                cerr << "Got error response: " << response << endl;
                 return -1;
             }
         }
@@ -306,7 +307,8 @@ int main(int argc, char *argv[]) {
     
     for( int i=5 ; i < argc ; i++ ) {
         if( send_file(argv[i]) != 0 ) {
-            cerr << "Failed to send message" << endl;
+            cerr << "Failed to send message " << argv[i] << endl;
+            cerr << "Exit." << endl;
             exit(EX_IOERR);
         }
     }
