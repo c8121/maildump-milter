@@ -34,6 +34,12 @@
 
 using namespace std;
 
+string smtpHost;
+int smtpPort;
+string envFrom;
+string envTo;
+string heloName;
+
 /**
  * 
  */
@@ -160,47 +166,26 @@ void send_line(int socket, string command) {
  * 
  */
 void usage_message() {
-    cout << "Usage: mailforward <host> <port> <filename> <from> <to>" << endl;
+    cout << "Usage: mailforward <host> <port> <from> <to> <filename> [filename...]" << endl;
 }
+
 
 /**
  * 
  */
-int main(int argc, char *argv[]) {
-    
-    if (argc < 6) {
-        cerr << "Missing arguments" << endl;
-        usage_message();
-        exit(EX_USAGE);
-    }
+int send_file(const char *filePath) {
     
     // Check if file exists
-    string fileName = string(argv[3]);
     struct stat fileStat;
-    if( stat(fileName.c_str(), &fileStat) != 0 ) {
-        cerr << "File not found: " << fileName << endl;
-        exit(EX_DATAERR);
+    if( stat(filePath, &fileStat) != 0 ) {
+        cerr << "File not found: " << filePath << endl;
+        return -1;
     }
     
-    // Check sender and recipient
-    string from = string(argv[4]);
-    string to = string(argv[5]);
-    if( from.empty() || to.empty() ) {
-        cerr << "Parameter 'from' and 'to' cannot be empty" << endl;
-        usage_message();
-        exit(EX_USAGE);
-    }
-    
-    // Read hostname
-    char buf[128] {0};
-    gethostname(buf, sizeof(buf));
-    string heloName = string(buf);
-    
-    
-    ifstream fileInput(fileName);
+    ifstream fileInput(filePath);
     if( !fileInput.is_open() ) {
-        cerr << "Failed to open file: " << fileName << endl;
-        exit(EX_IOERR);
+        cerr << "Failed to open file: " << filePath << endl;
+        return -1;
     }
     
     // As we are sending a file as it is right after the SMTP DATA command, 
@@ -226,34 +211,34 @@ int main(int argc, char *argv[]) {
     }
     
     if( headers.size() == 0 || body.size() == 0 ) {
-        cerr << "Header does not seem to have headers or body (" << headers.size() << " header lines, " << body.size() << " body lines)" << endl;
+        cerr << "Message does not seem to have headers or body (" << headers.size() << " header lines, " << body.size() << " body lines)" << endl;
         fileInput.close();
         exit(EX_DATAERR);
     }
     
     //cout << "Message with " << headers.size() << " headers" << endl;
     
-    int socket = open_socket(argv[1], atoi(argv[2]));
+    int socket = open_socket(const_cast<char*>(smtpHost.c_str()), smtpPort);
     if( socket > 0 ) {
         
         send_line(socket, "helo " + heloName);
         if( read_line(socket) != 0 ) {
-            exit(EX_IOERR);
+            return -1;
         }
         
-        send_line(socket, "mail from: <" + from + ">");
+        send_line(socket, "mail from: <" + envFrom + ">");
         if( read_line(socket) != 0 ) {
-            exit(EX_IOERR);
+            return -1;
         }
         
-        send_line(socket, "rcpt to: <" + to + ">");
+        send_line(socket, "rcpt to: <" + envTo + ">");
         if( read_line(socket) != 0 ) {
-            exit(EX_IOERR);
+            return -1;
         }
         
         send_line(socket, "data");
         if( read_line(socket) != 0 ) {
-            exit(EX_IOERR);
+            return -1;
         }
         
         for( int i=0 ; i < headers.size() ; i++ ) {
@@ -272,12 +257,12 @@ int main(int argc, char *argv[]) {
         
         send_line(socket, ".");
         if( read_line(socket) != 0 ) {
-            exit(EX_IOERR);
+            return -1;
         }
         
         send_line(socket, "quit");
         if( read_line(socket) != 0 ) {
-            exit(EX_IOERR);
+            return -1;
         }
         
         close(socket);
@@ -285,6 +270,48 @@ int main(int argc, char *argv[]) {
     
     fileInput.close();
     
+    return 0;
+}
+
+
+/**
+ * 
+ */
+int main(int argc, char *argv[]) {
+    
+    if (argc < 6) {
+        cerr << "Missing arguments" << endl;
+        usage_message();
+        exit(EX_USAGE);
+    }
+    
+    // SMTP Server
+    smtpHost = argv[1];
+    smtpPort = atoi(argv[2]);
+    
+    // Check sender and recipient
+    envFrom = string(argv[3]);
+    envTo = string(argv[4]);
+    if( envFrom.empty() || envTo.empty() ) {
+        cerr << "Parameter 'from' and 'to' cannot be empty" << endl;
+        usage_message();
+        exit(EX_USAGE);
+    }
+    
+    // Read hostname
+    char buf[128] {0};
+    gethostname(buf, sizeof(buf));
+    heloName = string(buf);
+    
+    
+    for( int i=5 ; i < argc ; i++ ) {
+        if( send_file(argv[i]) != 0 ) {
+            cerr << "Failed to send message" << endl;
+            exit(EX_IOERR);
+        }
+    }
+    
+    return 0;
 }
 
 
