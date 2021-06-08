@@ -26,9 +26,9 @@ for r in $REQUIRE ; do
 	fi
 done
 
-gcc -o "$binDir/maildump" "$sourceDir/maildump.cpp" $REQUIRE -lstdc++ -pthread
+gcc -o "$binDir/maildump" "$sourceDir/maildump.c" $REQUIRE -pthread
 
 
 
 echo "Build mailforwarder"
-gcc -o "$binDir/mailforward" "$sourceDir/mailforward.cpp" -lstdc++ 
+gcc -o "$binDir/mailforward" "$sourceDir/mailforward.c" 

@@ -17,64 +17,62 @@
  * Author: christian c8121 de
  */
 
+#include <stdlib.h>
+#include <time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sysexits.h>
-#include <string>
-#include <iostream>
-#include <ctime>
 #include <sys/stat.h>
 
 #include <libmilter/mfapi.h>
 
-using namespace std;
 
+char milterName[] = "Maildump Milter";
 
-string milterName = "Maildump Milter";
-string socketPath = "/var/spool/postfix/maildump/maildump.socket";
-string outputDir = "/var/spool/postfix/maildump";
+char *socketPath = "/var/spool/postfix/maildump/maildump.socket";
+char *outputDir = "/var/spool/postfix/maildump";
 
-string envFromHeader = "X-ACHRIVED-FROM";
-string envRcptHeader = "X-ACHRIVED-RCPT";
+char *envFromHeader = "X-ACHRIVED-FROM";
+char *envRcptHeader = "X-ACHRIVED-RCPT";
 
 
 /**
  * Data structure assigned to each MILTER-Session.
  */
 struct SessionData {
-    char *fileName = NULL; //basename
-    char *filePath = NULL; //full path
-    FILE *file = NULL;
+    char *fileName; //basename
+    char *filePath; //full path
+    FILE *file;
 };
 
 /**
  * Get or create SessionData assigned to given context.
  * Opens file to write message to (with temporary name).
  */
-SessionData* get_session_data(SMFICTX *ctx) {
+struct SessionData* get_session_data(SMFICTX *ctx) {
     
-    SessionData *sessionData = (SessionData*) smfi_getpriv(ctx);
+    struct SessionData *sessionData = smfi_getpriv(ctx);
     
     if( sessionData == NULL ) {
-        cout << "Create new session: " << ctx << endl;
-        sessionData = (SessionData*) malloc(sizeof(sessionData));
+        printf("Create new session: %p\n", ctx);
+        sessionData = malloc(sizeof(sessionData));
         
         sessionData->fileName = (char*) malloc(64);
-        sprintf(sessionData->fileName, "%jd-%i.msg", (intmax_t)time(0), std::rand());
+        sprintf(sessionData->fileName, "%jd-%i.msg", time(0), rand());
         
         sessionData->filePath = (char*) malloc(1024);
-        sprintf(sessionData->filePath, "%s/.%s.filepart", const_cast<char*>(outputDir.c_str()), sessionData->fileName);
+        sprintf(sessionData->filePath, "%s/.%s.filepart", outputDir, sessionData->fileName);
         
         
         sessionData->file = fopen(sessionData->filePath, "w");
         if( sessionData->file == NULL ) {
-            cerr << "Failed to open file (w): " << sessionData->filePath;
+            fprintf(stderr,"Failed to open file (w): %s\n", sessionData->filePath);
         }
         
         smfi_setpriv(ctx, sessionData);
     }
     
-    cout << "Session: " << ctx << ", File=" << sessionData->filePath << endl;
+    printf("Session: %p, File=%s\n", ctx, sessionData->filePath);
     
     return sessionData;
 }
@@ -85,23 +83,23 @@ SessionData* get_session_data(SMFICTX *ctx) {
  */
 void cleanup_session_data(SMFICTX *ctx) {
 
-    SessionData *sessionData = (SessionData*) smfi_getpriv(ctx);
+    struct SessionData *sessionData = smfi_getpriv(ctx);
     
     if( sessionData != NULL ) {
         
-        cout << "Cleanup session: " << ctx << ", File=" << sessionData->filePath << endl;
+        printf("Cleanup session: %p, File=%s\n", ctx, sessionData->filePath);
         
         if( sessionData->file != NULL ) {
             if( fclose(sessionData->file) != 0 ) {
-                cerr << "Failed to close file: " << sessionData->filePath << endl;
+                fprintf(stderr,"Failed to close file: %s\n", sessionData->filePath);
             }
             
             char *finalFileName = (char*) malloc(1024);
-            sprintf(finalFileName, "%s/%s", const_cast<char*>(outputDir.c_str()), sessionData->fileName);
+            sprintf(finalFileName, "%s/%s", outputDir, sessionData->fileName);
             link(sessionData->filePath, finalFileName);
 	        unlink(sessionData->filePath);
             
-            cout << "Created file: " << finalFileName << endl;
+            printf("Created file: %s\n", finalFileName);
             free(finalFileName);
         }
         
@@ -119,24 +117,20 @@ void cleanup_session_data(SMFICTX *ctx) {
  */
 
 sfsistat mlfi_envfrom(SMFICTX *ctx, char **envfrom) {
-    
-    //cout << ctx << ": mlfi_envfrom" << endl;
-    
-    SessionData *sessionData = get_session_data(ctx);
-    if( sessionData->file != NULL && !envFromHeader.empty()) {
-        fprintf(sessionData->file, "%s: %s\r\n", const_cast<char*>(envFromHeader.c_str()), *envfrom);
+        
+    struct SessionData *sessionData = get_session_data(ctx);
+    if( sessionData->file != NULL && envFromHeader[0] != '\0') {
+        fprintf(sessionData->file, "%s: %s\r\n", envFromHeader, *envfrom);
     }
     
     return SMFIS_CONTINUE;
 }
 
 sfsistat mlfi_envrcpt(SMFICTX *ctx, char **envrcpt) {
-    
-    //cout << ctx << ": mlfi_envrcpt" << endl;
-    
-    SessionData *sessionData = get_session_data(ctx);
-    if( sessionData->file != NULL && !envRcptHeader.empty()) {
-        fprintf(sessionData->file, "%s: %s\r\n", const_cast<char*>(envRcptHeader.c_str()), *envrcpt);
+        
+    struct SessionData *sessionData = get_session_data(ctx);
+    if( sessionData->file != NULL && !envRcptHeader[0] != '\0') {
+        fprintf(sessionData->file, "%s: %s\r\n", envRcptHeader, *envrcpt);
     }
     
     return SMFIS_CONTINUE;
@@ -144,10 +138,8 @@ sfsistat mlfi_envrcpt(SMFICTX *ctx, char **envrcpt) {
 }
 
 sfsistat mlfi_header(SMFICTX *ctx, char *headerName, char *headerValue) {
-    
-    //cout << ctx << ": mlfi_header" << endl;
-    
-    SessionData *sessionData = get_session_data(ctx);
+        
+    struct SessionData *sessionData = get_session_data(ctx);
     if( sessionData->file != NULL ) {
         fprintf(sessionData->file, "%s: %s\r\n", headerName, headerValue);
     }
@@ -157,10 +149,8 @@ sfsistat mlfi_header(SMFICTX *ctx, char *headerName, char *headerValue) {
 }
 
 sfsistat mlfi_eoh(SMFICTX *ctx) {
-   
-    //cout << ctx << ": mlfi_eoh" << endl;
-    
-    SessionData *sessionData = get_session_data(ctx);
+       
+    struct SessionData *sessionData = get_session_data(ctx);
     if( sessionData->file != NULL ) {
         fprintf(sessionData->file, "\r\n");
     }
@@ -171,13 +161,11 @@ sfsistat mlfi_eoh(SMFICTX *ctx) {
 
 
 sfsistat mlfi_body(SMFICTX *ctx, u_char *bodyp, size_t bodylen) {
-    
-    //cout << ctx << ": mlfi_body" << endl;
-    
-    SessionData *sessionData = get_session_data(ctx);
+        
+    struct SessionData *sessionData = get_session_data(ctx);
     if( sessionData->file != NULL ) {
         if (fwrite(bodyp, bodylen, 1, sessionData->file) <= 0) {
-            cerr << "Failed to write body" << endl;
+            fprintf(stderr, "Failed to write body\n");
             cleanup_session_data(ctx);
             return SMFIS_TEMPFAIL;
         }
@@ -187,9 +175,7 @@ sfsistat mlfi_body(SMFICTX *ctx, u_char *bodyp, size_t bodylen) {
 }
 
 sfsistat mlfi_eom(SMFICTX *ctx) {
-    
-    //cout << ctx << ": mlfi_eom" << endl;
-    
+        
     cleanup_session_data(ctx);
     
     return SMFIS_CONTINUE;
@@ -198,8 +184,6 @@ sfsistat mlfi_eom(SMFICTX *ctx) {
 
 sfsistat mlfi_close(SMFICTX *ctx) {
     
-    //cout << ctx << ": mlfi_close" << endl;
-    
     cleanup_session_data(ctx);
     
     return SMFIS_ACCEPT;
@@ -207,16 +191,16 @@ sfsistat mlfi_close(SMFICTX *ctx) {
 
 sfsistat mlfi_abort(SMFICTX *ctx) {
     
-    cout << ctx << ": mlfi_abort" << endl;
+    printf("%p: mlfi_abort\n", ctx);
     
-    SessionData *sessionData = get_session_data(ctx);
+    struct SessionData *sessionData = get_session_data(ctx);
     if( sessionData != NULL && sessionData->file != NULL ) {
-        cout << ctx << ": Close and remove " << sessionData->filePath << endl;
+        printf("Close and remove: %p, File=%s\n", ctx, sessionData->filePath);
         if( fclose(sessionData->file) != 0 ) {
-            cerr << "Failed to close file: " << sessionData->filePath << endl;
+            fprintf(stderr, "Failed to close file: %s\n", sessionData->filePath);
         }
         if( remove(sessionData->filePath) != 0 ) {
-            cerr << "Failed to remove file: " << sessionData->filePath << endl;
+            fprintf(stderr, "Failed to remove file: %s\n", sessionData->filePath);
         }
         sessionData->file = NULL;
     }
@@ -229,7 +213,7 @@ sfsistat mlfi_abort(SMFICTX *ctx) {
 
 struct smfiDesc smfilter =
 {
-    const_cast<char*>(milterName.c_str()),	/* filter name */
+    milterName,	/* filter name */
     SMFI_VERSION,	/* version code -- do not change */
     SMFIF_ADDHDRS,	/* flags */
     NULL,		/* connection info filter */
@@ -244,14 +228,17 @@ struct smfiDesc smfilter =
     mlfi_close	/* connection cleanup */
 };
 
-void usage_message() {
-    cout 
-        << milterName << endl
-        << "Usage:" << endl
-        << "  -s <socket path> (default: " << socketPath << ")" << endl
-        << "  -o <output directory> (default: " << outputDir << ")" << endl
-        << "  -f <envelope from header name> (default: " << envFromHeader << ", empty to omit this header)" << endl
-        << "  -t <envelope rcpt-to header name> (default: " << envRcptHeader << ", empty to omit this header)" << endl;
+
+/**
+ * 
+ */
+void print_usage_message() {
+    printf( "%s\n", milterName);
+    printf( "Usage:\n");
+    printf( "  -s <socket path> (default: %s)\n", socketPath);
+    printf( "  -o <output directory> (default: %s)\n", outputDir);
+    printf( "  -f <envelope from header name> (default: %s, empty to omit this header)\n", envFromHeader);
+    printf( "  -t <envelope rcpt-to header name> (default: %s, empty to omit this header)\n", envRcptHeader);
 }
 
 
@@ -262,6 +249,8 @@ void configure(int argc, char *argv[]) {
 
     const char *options = "s:o:f:t:h";
     int c;
+    struct stat fileStat;
+    
     while ((c = getopt(argc, argv, options)) != -1) {
         switch(c) {
             
@@ -270,31 +259,30 @@ void configure(int argc, char *argv[]) {
                 break;
                 
             case 'o':
-                struct stat statbuf;
-                if (stat(optarg, &statbuf) == -1) {
-                    cerr << "Cannot set output dir (does not exist)" << endl;
+                if (stat(optarg, &fileStat) == -1) {
+                    fprintf(stderr, "Cannot set output dir (does not exist)\n");
                 } else {
                     outputDir = optarg;
-                    cout << "Store messages in " << outputDir << endl;
+                    printf("Store messages in %s\n", outputDir);
                 }
                 break;
                 
             case 'f':
                 envFromHeader = optarg;
-                if( envFromHeader.empty() ) {
-                    cout << "Will not add 'envelope from'-header " << endl;
+                if( envFromHeader[0] == '\0' ) {
+                    printf("Will not add 'envelope from'-header\n");
                 }
                 break;
                 
             case 't':
                 envRcptHeader = optarg;
-                if( envRcptHeader.empty() ) {
-                    cout << "Will not add 'enveloper rcpt-to'-header " << endl;
+                if( envRcptHeader[0] == '\0' ) {
+                    printf("Will not add 'enveloper rcpt-to'-header\n");
                 }
                 break;
                 
             case 'h':
-                usage_message();
+                print_usage_message();
                 break;
         }
     }
@@ -310,33 +298,33 @@ int main(int argc, char *argv[]) {
     configure(argc, argv);
     
     //Create seed for rand() used in get_session_data(...) above.
-    std::srand(std::time(nullptr));
+    srand(time(NULL));
 
     //Check if socket file exists and try to remove before bind
     struct stat fileStat;
-    if( stat(const_cast<char*>(socketPath.c_str()), &fileStat) == 0 ) {
-        cout << "Socket exists, remove: " << socketPath << endl;
-        unlink(const_cast<char*>(socketPath.c_str()));
+    if( stat(socketPath, &fileStat) == 0 ) {
+        printf("Socket exists, remove: %s\n", socketPath);
+        unlink(socketPath);
     }
     
     
-    cout << "Bind to " << socketPath << endl;
-    smfi_setconn(const_cast<char*>(socketPath.c_str()));
+    printf("Bind to %s\n", socketPath);
+    smfi_setconn(socketPath);
 
     if (smfi_register(smfilter) == MI_FAILURE) {
-        cout << "smfi_register failed\n";
+        fprintf(stderr, "smfi_register failed\n");
         exit(EX_UNAVAILABLE);
     }
 
     if (smfi_main() == MI_FAILURE) {
-        cout << "smfi_main failed\n";
+        fprintf(stderr, "smfi_main failed\n");
         exit(EX_UNAVAILABLE);
     }
     
     //Cleanup    
-    unlink(const_cast<char*>(socketPath.c_str()));
+    unlink(socketPath);
     
-    cout << "Exit." << endl;
+    printf("Exit\n");
     
 }
 
