@@ -61,3 +61,17 @@ Now send a message to your Postfix server and check output of command above.
 Message files will be stored in `/var/spool/postfix/maildump/` with filename `<timestamp>-<random>.msg`
 
 
+### mailforward
+
+The `mailforward` program reads a message file and sends it to a SMTP-Server.
+No configration required.
+
+Usage: `mailforward <host> <port> <from> <to> <filename> [filename...]`
+
+Parameter     | Description
+--------------| -----------
+host          | SMTP Hostname or address
+port          | SMTP Port
+from          | Envelope-From name (used in SMTP-Dialog)
+to            | Envelope-Recipient name (used in SMTP-Dialog)
+filename      | Path and name of file to be sent
