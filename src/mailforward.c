@@ -29,8 +29,8 @@
 #include <netdb.h> 
 #include <sysexits.h>
 
-#include "net_util.c"
-#include "smtp_socket_util.c"
+#include "../lib/sntools/src/net_util.c"
+#include "../lib/sntools/src/smtp_socket_util.c"
 
 char *smtpHost;
 int smtpPort;

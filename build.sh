@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BASE=$(dirname $0)
+BASE=$(realpath $(dirname $0))
 
 sourceDir=$BASE/src
 binDir=$BASE/bin
@@ -28,6 +28,14 @@ done
 
 gcc -o "$binDir/maildump" "$sourceDir/maildump.c" $REQUIRE -pthread
 
+
+
+if [[ ! -d "$BASE/lib/sntools" ]] ; then
+	echo "Pull sntools"
+	cd "$BASE/lib"
+	git clone https://github.com/c8121/sntools.git
+	cd "$BASE"
+fi
 
 
 echo "Build mailforwarder"
