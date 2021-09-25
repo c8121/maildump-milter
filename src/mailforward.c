@@ -66,8 +66,6 @@ int send_file(const char *filePath) {
 		return -1;
 	}
 
-	//printf("Reading %s\n", filePath);
-
 	// As we are sending a file as it is right after the SMTP DATA command, 
 	// check if the given file has headers and body.
 	struct linked_item *header = NULL;
@@ -102,7 +100,6 @@ int send_file(const char *filePath) {
 
 	int headerLines = linked_item_count(header);
 	int bodyLines = linked_item_count(body);
-	//printf("%s: %i header lines, %i body lines\n", filePath, headerLines, bodyLines);
 	if( headerLines == 0 || bodyLines == 0 ) {
 		fprintf(stderr, "Message does not seem to have headers or body (%i header lines, %i body lines)\n", headerLines, bodyLines);
 		fclose(fp);
