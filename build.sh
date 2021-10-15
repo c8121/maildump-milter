@@ -32,6 +32,9 @@ gcc -o "$binDir/maildump" "$sourceDir/maildump.c" $REQUIRE -pthread
 
 if [[ ! -d "$BASE/lib/sntools" ]] ; then
 	echo "Pull sntools"
+	if [[ ! -d "$BASE/lib" ]] ; then
+		mkdir "$BASE/lib"
+	fi
 	cd "$BASE/lib"
 	git clone https://github.com/c8121/sntools.git
 	cd "$BASE"
