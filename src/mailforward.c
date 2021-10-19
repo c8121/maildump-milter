@@ -39,6 +39,13 @@ char *envFrom;
 char *envTo;
 char *heloName;
 
+#define MAX_LINE_SIZE 255
+
+struct buffer_line {
+	struct linked_item list;
+	char s[MAX_LINE_SIZE];
+};
+
 
 /**
  * 
@@ -68,28 +75,23 @@ int send_file(const char *filePath) {
 
 	// As we are sending a file as it is right after the SMTP DATA command, 
 	// check if the given file has headers and body.
-	struct linked_item *header = NULL;
-	struct linked_item *body = NULL;
+	struct buffer_line *header = NULL;
+	struct buffer_line *body = NULL;
 	char line[255];
-	struct linked_item *readInto = NULL;
+	struct buffer_line *read_into = NULL;
 	while(fgets(line, sizeof(line), fp)) {
 
 		if( header == NULL ) {
-			header = malloc(sizeof(struct linked_item));
-			readInto = header;
+			header = linked_item_create(NULL, sizeof(struct buffer_line));
+			read_into = header;
 		} else if( body == NULL && (line[0] == '\r' || line[0] == '\n') ) {
-			body = malloc(sizeof(struct linked_item));
-			readInto = body;
+			body = linked_item_create(NULL, sizeof(struct buffer_line));
+			read_into = body;
 		} else {
-			readInto->next = malloc(sizeof(struct linked_item));
-			readInto = readInto->next;
+			read_into = linked_item_create(read_into, sizeof(struct buffer_line));
 		}
 
-		readInto->next = NULL;
-
-		int len = strlen(line);
-		readInto->data = malloc(len+1);
-		strcpy(readInto->data, line);
+		strcpy(read_into->s, line);
 
 		//read up to 3 body lines here
 		//rest will be read in smtp dialog below
@@ -98,10 +100,10 @@ int send_file(const char *filePath) {
 		}
 	}
 
-	int headerLines = linked_item_count(header);
-	int bodyLines = linked_item_count(body);
-	if( headerLines == 0 || bodyLines == 0 ) {
-		fprintf(stderr, "Message does not seem to have headers or body (%i header lines, %i body lines)\n", headerLines, bodyLines);
+	int header_lines = linked_item_count(header);
+	int body_lines = linked_item_count(body);
+	if( header_lines == 0 || body_lines == 0 ) {
+		fprintf(stderr, "Message does not seem to have headers or body (%i header lines, %i body lines)\n", header_lines, body_lines);
 		fclose(fp);
 		exit(EX_DATAERR);
 	}
@@ -140,22 +142,20 @@ int send_file(const char *filePath) {
 		}
 
 		// Send header which has been read above
-		struct linked_item *curr = header;
+		struct buffer_line *curr = header;
 		while( curr != NULL ) {
-			snprintf(buf, sizeof(buf), "%s", (char *)curr->data);
-			write(socket, buf, strlen(buf));
-			curr = curr->next;
+			write(socket, curr->s, strlen(curr->s));
+			curr = (struct buffer_line *) curr->list.next;
 		}
-		linked_item_free(header);
+		linked_item_free(header, NULL);
 
 		// Send body which has been read above
 		curr = body;
 		while( curr != NULL ) {
-			snprintf(buf, sizeof(buf), "%s", (char *)curr->data);
-			write(socket, buf, strlen(buf));
-			curr = curr->next;
+			write(socket, curr->s, strlen(curr->s));
+			curr = (struct buffer_line *) curr->list.next;
 		}
-		linked_item_free(body);
+		linked_item_free(body, NULL);
 
 		// Send rest of body directly from file
 		while(fgets(line, sizeof(line), fp)) {
