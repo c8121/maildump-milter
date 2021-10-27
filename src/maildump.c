@@ -54,7 +54,7 @@ struct SessionData* get_session_data(SMFICTX *ctx) {
 	struct SessionData *sessionData = smfi_getpriv(ctx);
 
 	if( sessionData == NULL ) {
-		printf("Create new session: %p\n", ctx);
+		//printf("Create new session: %p\n", ctx);
 		sessionData = malloc(sizeof(sessionData));
 
 		sessionData->fileName = (char*) malloc(64);
@@ -72,7 +72,7 @@ struct SessionData* get_session_data(SMFICTX *ctx) {
 		smfi_setpriv(ctx, sessionData);
 	}
 
-	printf("Session: %p, File=%s\n", ctx, sessionData->filePath);
+	//printf("Session: %p, File=%s\n", ctx, sessionData->filePath);
 
 	return sessionData;
 }
@@ -87,7 +87,7 @@ void cleanup_session_data(SMFICTX *ctx) {
 
 	if( sessionData != NULL ) {
 
-		printf("Cleanup session: %p, File=%s\n", ctx, sessionData->filePath);
+		//printf("Cleanup session: %p, File=%s\n", ctx, sessionData->filePath);
 
 		if( sessionData->file != NULL ) {
 			if( fclose(sessionData->file) != 0 ) {
