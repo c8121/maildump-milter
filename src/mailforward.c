@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -39,6 +40,7 @@ char *envFrom;
 char *envTo;
 char *heloName;
 
+int ignoreFilesYoungerSeconds = 60;
 char *addExtensionBeforeForward = ".tmp";
 char *addExtensionOnSuccess = ".archived";
 
@@ -211,6 +213,8 @@ int main(int argc, char *argv[]) {
 	gethostname(buf, sizeof(buf));
 	heloName = buf;
 
+	time_t now = time(NULL);
+
 
 	for( int i=5 ; i < argc ; i++ ) {
 
@@ -221,29 +225,37 @@ int main(int argc, char *argv[]) {
 			exit(EX_IOERR);
 		}
 
-		char tmpName[strlen(argv[i]) + strlen(addExtensionBeforeForward) +1];
-		sprintf(tmpName, "%s%s", argv[i], addExtensionBeforeForward);
-		//printf("Rename to: '%s'\n", newName);
-		if( rename(argv[i], tmpName) != 0 ) {
-			fprintf(stderr, "Failed to rename %s to %s\n", argv[i], tmpName);
-			exit(EX_IOERR);
-		}
-
-		if( send_file(tmpName) != 0 ) {
-			fprintf(stderr, "Failed to send message %s\n", argv[i]);
-			fprintf(stderr, "Exit.\n");
-			exit(EX_IOERR);
+		unsigned long age = now - fileStat.st_mtime;
+		if( age < ignoreFilesYoungerSeconds ) {
+			printf("Ignore file (younger than %i seconds): %s (%li seconds old)\n", ignoreFilesYoungerSeconds, argv[i], age);
 		} else {
-			printf("Successfully sent %s\n", argv[i]);
-			if( addExtensionOnSuccess != NULL && strlen(addExtensionOnSuccess) > 0 ) {
-				char newName[strlen(argv[i]) + strlen(addExtensionOnSuccess) +1];
-				sprintf(newName, "%s%s", argv[i], addExtensionOnSuccess);
-				//printf("Rename to: '%s'\n", newName);
-				if( rename(tmpName, newName) != 0 ) {
-					fprintf(stderr, "Failed to rename %s to %s\n", tmpName, newName);
-					exit(EX_IOERR);
+
+
+			char tmpName[strlen(argv[i]) + strlen(addExtensionBeforeForward) +1];
+			sprintf(tmpName, "%s%s", argv[i], addExtensionBeforeForward);
+			//printf("Rename to: '%s'\n", newName);
+			if( rename(argv[i], tmpName) != 0 ) {
+				fprintf(stderr, "Failed to rename %s to %s\n", argv[i], tmpName);
+				exit(EX_IOERR);
+			}
+
+			if( send_file(tmpName) != 0 ) {
+				fprintf(stderr, "Failed to send message %s\n", argv[i]);
+				fprintf(stderr, "Exit.\n");
+				exit(EX_IOERR);
+			} else {
+				printf("Successfully sent %s\n", argv[i]);
+				if( addExtensionOnSuccess != NULL && strlen(addExtensionOnSuccess) > 0 ) {
+					char newName[strlen(argv[i]) + strlen(addExtensionOnSuccess) +1];
+					sprintf(newName, "%s%s", argv[i], addExtensionOnSuccess);
+					//printf("Rename to: '%s'\n", newName);
+					if( rename(tmpName, newName) != 0 ) {
+						fprintf(stderr, "Failed to rename %s to %s\n", tmpName, newName);
+						exit(EX_IOERR);
+					}
 				}
 			}
+
 		}
 	}
 
