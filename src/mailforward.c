@@ -156,14 +156,14 @@ int send_file(const char *filePath) {
 		// Send body which has been read above
 		curr = body;
 		while( curr != NULL ) {
-			write(socket, curr->s, strlen(curr->s));
+			smtp_write(socket, curr->s);
 			curr = (struct buffer_line *) curr->list.next;
 		}
 		linked_item_free(body, NULL);
 
 		// Send rest of body directly from file
 		while(fgets(line, sizeof(line), fp)) {
-			write(socket, line, strlen(line));
+			smtp_write(socket, line);
 		}
 
 		snprintf(buf, sizeof(buf), ".\r\n");

@@ -32,8 +32,8 @@ char milterName[] = "Maildump Milter";
 char *socketPath = "/var/spool/postfix/maildump/maildump.socket";
 char *outputDir = "/var/spool/postfix/maildump";
 
-char *envFromHeader = "X-ACHRIVED-FROM";
-char *envRcptHeader = "X-ACHRIVED-RCPT";
+char *envFromHeader = "X-ARCHIVED-FROM";
+char *envRcptHeader = "X-ARCHIVED-RCPT";
 
 
 /**
@@ -129,7 +129,7 @@ sfsistat mlfi_envfrom(SMFICTX *ctx, char **envfrom) {
 sfsistat mlfi_envrcpt(SMFICTX *ctx, char **envrcpt) {
 
 	struct SessionData *sessionData = get_session_data(ctx);
-	if( sessionData->file != NULL && !envRcptHeader[0] != '\0') {
+	if( sessionData->file != NULL && envRcptHeader[0] != '\0') {
 		fprintf(sessionData->file, "%s: %s\r\n", envRcptHeader, *envrcpt);
 	}
 
@@ -277,7 +277,7 @@ void configure(int argc, char *argv[]) {
 		case 't':
 			envRcptHeader = optarg;
 			if( envRcptHeader[0] == '\0' ) {
-				printf("Will not add 'enveloper rcpt-to'-header\n");
+				printf("Will not add 'envelope rcpt-to'-header\n");
 			}
 			break;
 
