@@ -110,7 +110,11 @@ int send_file(const char *filePath) {
 
 	int socket = open_socket(smtpHost, smtpPort);
 	char buf[255];
-	if( socket > 0 ) {
+	if( socket < 1 ) {
+		fprintf(stderr, "Cannot connect to Server %s:%i\n", smtpHost, smtpPort);
+		fclose(fp);
+		return -1;
+	} else {
 
 		//Read SMTP Greeting
 		if( smtp_read(socket) != 0 ) {
