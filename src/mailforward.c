@@ -63,13 +63,6 @@ void usage_message() {
  */
 int send_file(const char *filePath) {
 
-	// Check if file exists
-	struct stat fileStat;
-	if( stat(filePath, &fileStat) != 0 ) {
-		fprintf(stderr, "File not found: %s\n", filePath);
-		return -1;
-	}
-
 	FILE *fp = fopen(filePath, "r");
 	if( fp == NULL ) {
 		fprintf(stderr, "Failed to open file: %s\n", filePath);
@@ -220,7 +213,14 @@ int main(int argc, char *argv[]) {
 
 
 	for( int i=5 ; i < argc ; i++ ) {
-		
+
+		// Check if file exists
+		struct stat fileStat;
+		if( stat(argv[i], &fileStat) != 0 ) {
+			fprintf(stderr, "File not found: %s\n", argv[i]);
+			exit(EX_IOERR);
+		}
+
 		char tmpName[strlen(argv[i]) + strlen(addExtensionBeforeForward) +1];
 		sprintf(tmpName, "%s%s", argv[i], addExtensionBeforeForward);
 		//printf("Rename to: '%s'\n", newName);
@@ -228,7 +228,7 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "Failed to rename %s to %s\n", argv[i], tmpName);
 			exit(EX_IOERR);
 		}
-		
+
 		if( send_file(tmpName) != 0 ) {
 			fprintf(stderr, "Failed to send message %s\n", argv[i]);
 			fprintf(stderr, "Exit.\n");
