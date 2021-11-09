@@ -39,6 +39,9 @@ char *envFrom;
 char *envTo;
 char *heloName;
 
+char *addExtensionBeforeForward = ".tmp";
+char *addExtensionOnSuccess = ".archived";
+
 #define MAX_LINE_SIZE 255
 
 struct buffer_line {
@@ -219,10 +222,28 @@ int main(int argc, char *argv[]) {
 
 
 	for( int i=5 ; i < argc ; i++ ) {
-		if( send_file(argv[i]) != 0 ) {
+		
+		char tmpName[strlen(argv[i]) + strlen(addExtensionBeforeForward) +1];
+		sprintf(tmpName, "%s%s", argv[i], addExtensionBeforeForward);
+		//printf("Rename to: '%s'\n", newName);
+		if( rename(argv[i], tmpName) != 0 ) {
+			fprintf(stderr, "Failed to rename %s to %s\n", argv[i], tmpName);
+			exit(EX_IOERR);
+		}
+		
+		if( send_file(tmpName) != 0 ) {
 			fprintf(stderr, "Failed to send message %s\n", argv[i]);
 			fprintf(stderr, "Exit.\n");
 			exit(EX_IOERR);
+		} else {
+			if( addExtensionOnSuccess != NULL && strlen(addExtensionOnSuccess) > 0 ) {
+				char newName[strlen(argv[i]) + strlen(addExtensionOnSuccess) +1];
+				sprintf(newName, "%s%s", argv[i], addExtensionOnSuccess);
+				//printf("Rename to: '%s'\n", newName);
+				if( rename(tmpName, newName) != 0 ) {
+					fprintf(stderr, "Failed to rename %s to %s\n", tmpName, newName);
+				}
+			}
 		}
 	}
 
