@@ -185,8 +185,6 @@ int send_file(const char *filePath) {
 	}
 
 	fclose(fp);
-
-	printf("Successfully sent %s\n", filePath);
 	return 0;
 }
 
@@ -236,6 +234,7 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "Exit.\n");
 			exit(EX_IOERR);
 		} else {
+			printf("Successfully sent %s\n", argv[i]);
 			if( addExtensionOnSuccess != NULL && strlen(addExtensionOnSuccess) > 0 ) {
 				char newName[strlen(argv[i]) + strlen(addExtensionOnSuccess) +1];
 				sprintf(newName, "%s%s", argv[i], addExtensionOnSuccess);
