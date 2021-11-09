@@ -242,6 +242,7 @@ int main(int argc, char *argv[]) {
 				//printf("Rename to: '%s'\n", newName);
 				if( rename(tmpName, newName) != 0 ) {
 					fprintf(stderr, "Failed to rename %s to %s\n", tmpName, newName);
+					exit(EX_IOERR);
 				}
 			}
 		}
