@@ -20,6 +20,8 @@
 
 /// -------------- WIP: JUST A TESTING UTIL AT THE MOMENT -------------------- //
 
+#define _GNU_SOURCE //to enable strcasestr(...)
+
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
@@ -35,6 +37,12 @@
 struct message_line {
 	struct linked_item list;
 	char s[MAX_LINE_LENGTH];
+};
+
+struct file_description {
+	char content_type[255];
+	char filename[255];
+	char encoding[255];
 };
 
 /**
@@ -66,6 +74,106 @@ char* last_non_whitespace(char *s) {
 	return result;
 }
 
+
+/**
+ * 
+ */
+void save_part(struct message_line *start, struct message_line *end, struct file_description *fd) {
+
+	//TODO: Decode
+	
+	printf("Saving part to: %s\n", fd->filename);
+	FILE *fp = fopen(fd->filename, "w");
+
+	int in_header = 1;
+
+	struct message_line *curr = start;
+	while( curr != NULL && curr != end ) {
+
+		if( in_header == 1 ) {
+			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
+				in_header = 0;
+			}
+		} else {
+			fprintf(fp, "%s", curr->s);
+		}
+
+		curr = (struct message_line*)curr->list.next;
+	}
+
+	fclose(fp);
+}
+
+/**
+ * 
+ */
+char* get_header_value(char *name, struct message_line *part) {
+
+	struct message_line *curr = part;
+	while( curr != NULL ) {
+
+		if( strncasecmp(name, curr->s, strlen(name)) == 0 ) {
+			char *p = strstr(curr->s, ":");
+			if( p != NULL ) {
+				//LTrim
+				while( p[0] == ':' || p[0] == ' ' )
+					p++;
+				//RTrim
+				for( char *i=p+strlen(p)-1 ; (i[0] == ' ' || i[0] == '\n' || i[0] == '\r') && i >= p ; i-- )
+					i[0] = '\0';
+				return p;
+			}
+		}
+
+		if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' )
+			return NULL;
+
+		curr = (struct message_line*)curr->list.next;
+	}
+
+	return NULL;
+}
+
+/**
+ * 
+ */
+struct file_description* get_file_description(struct message_line *part) {
+
+	struct file_description *fd = malloc(sizeof(struct file_description));
+
+	char *encoding = get_header_value("Content-Transfer-Encoding", part);
+	if( encoding != NULL ) {
+		strcpy(fd->encoding, encoding);
+		printf("ENCODING: %s\n", fd->encoding);
+	}
+
+	char ext[6];
+	char *content_type = get_header_value("Content-Type", part);
+	if( content_type != NULL ) {
+		strcpy(fd->content_type, content_type);
+		if( strcasestr(content_type, "text/plain") != NULL ) {
+			strcpy(ext, "txt");
+		} else if( strcasestr(content_type, "text/html") != NULL ) {
+			strcpy(ext, "html");
+		} else if( strcasestr(content_type, "application/pdf") != NULL ) {
+			strcpy(ext, "pdf");
+		} else if( strcasestr(content_type, "image/jpg") != NULL || strcasestr(content_type, "image/jpeg") != NULL ) {
+			strcpy(ext, "jpg");
+		} else if( strcasestr(content_type, "image/jpg") != NULL || strcasestr(content_type, "image/gid") != NULL ) {
+			strcpy(ext, "gif");
+		} else {
+			strcpy(ext, "bin");
+		}
+	} else {
+		fd->content_type[0] = '\0';
+		strcpy(ext, "bin");
+	}
+
+	sprintf(fd->filename, "/tmp/message-part.%s", ext);
+
+	return fd;
+}
+
 /**
  * 
  */
@@ -80,7 +188,7 @@ void find_parts(struct message_line *message) {
 
 	struct message_line *curr = message;
 	while( curr != NULL ) {
-		
+
 		if( reading_headers == 1 ) {
 			printf("%i HEADER> %s", offset, curr->s);
 			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
@@ -88,7 +196,7 @@ void find_parts(struct message_line *message) {
 				reading_headers = 0;
 			}
 		}
-		
+
 		if( curr_boundary[0] != '\0' ) {
 			char *p = strstr(curr->s+2, curr_boundary);
 			if( p != NULL ) {
@@ -100,11 +208,17 @@ void find_parts(struct message_line *message) {
 				if( strlen(e) > 1 && e[0] == '-' && e[1] == '-' ) {
 					printf("%i *END> %s\n", offset, curr_boundary);
 					curr_boundary[0] = '\0';
+					struct file_description *fd = get_file_description(part_begin);
+					save_part(part_begin, curr, fd);
+					free(fd);
 				} else if(part_begin == NULL) {
 					printf("%i *FIRST> %s\n", offset, curr_boundary);
 					part_begin = (struct message_line*)curr->list.next;
 				} else {
 					printf("%i *NEXT> %s\n", offset, curr_boundary);
+					struct file_description *fd = get_file_description(part_begin);
+					save_part(part_begin, curr, fd);
+					free(fd);
 					part_begin = (struct message_line*)curr->list.next;
 				}
 			}
