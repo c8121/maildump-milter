@@ -43,3 +43,7 @@ fi
 
 echo "Build mailforwarder"
 gcc -o "$binDir/mailforward" "$sourceDir/mailforward.c" 
+
+
+echo "Build mailparser"
+gcc -o "$binDir/mailparser" "$sourceDir/mailparser.c"
