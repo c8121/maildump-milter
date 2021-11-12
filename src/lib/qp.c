@@ -33,7 +33,7 @@ int __hexval(int c) {
  */
 char* qp_decode(const char *body)
 {
-	char *out = malloc(strlen(body));
+	char *out = malloc(strlen(body)+1);
 
 	int p = 0;
 	int o = 0;
@@ -54,6 +54,7 @@ char* qp_decode(const char *body)
 			p += 3;
 		}
 	}
+	out[o++] = '\0';
 
 	return out;
 }
