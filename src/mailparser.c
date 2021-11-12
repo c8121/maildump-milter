@@ -31,6 +31,8 @@
 #include <sys/stat.h>
 
 #include "../lib/sntools/src/lib/linked_items.c"
+#include "../lib/jouni-malinen/base64.c"
+#include "./lib/qp.c"
 
 #define MAX_LINE_LENGTH 1024
 
@@ -78,12 +80,54 @@ char* last_non_whitespace(char *s) {
 /**
  * 
  */
-void save_part(struct message_line *start, struct message_line *end, struct file_description *fd) {
+void qp_decode_save(struct message_line *start, struct message_line *end, FILE *fp) {
 
-	//TODO: Decode
-	
-	printf("Saving part to: %s\n", fd->filename);
-	FILE *fp = fopen(fd->filename, "w");
+	int in_header = 1;
+	struct message_line *content_start = NULL;
+	int out_size = 0;
+
+	struct message_line *curr = start;
+	while( curr != NULL && curr != end ) {
+
+		if( in_header == 1 ) {
+			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
+				in_header = 0;
+			}
+		} else {
+			if( content_start == NULL)
+				content_start = curr;
+			out_size += strlen(curr->s);
+		}
+
+		curr = (struct message_line*)curr->list.next;
+	}
+
+	if( content_start != NULL ) {
+		char *out = malloc(out_size + 1);
+		int p=0;
+		curr = content_start;
+		while( curr != NULL && curr != end ) {
+
+			for( int i=0 ; i < strlen(curr->s) ; i++ )
+				out[p++] = curr->s[i];
+
+			curr = (struct message_line*)curr->list.next;
+		}
+		out[p++] = '\0';
+
+		char *decoded = qp_decode(out);
+		fwrite(decoded, 1, strlen(decoded), fp);
+
+		free(decoded);
+		free(out);
+	}
+
+}
+
+/**
+ * 
+ */
+void base64_decode_save(struct message_line *start, struct message_line *end, FILE *fp) {
 
 	int in_header = 1;
 
@@ -95,10 +139,57 @@ void save_part(struct message_line *start, struct message_line *end, struct file
 				in_header = 0;
 			}
 		} else {
-			fprintf(fp, "%s", curr->s);
+
+			size_t out_len = 0;
+			char *out = base64_decode(curr->s, strlen(curr->s), &out_len);
+			fwrite(out, 1, out_len, fp);
+			free(out);
 		}
 
 		curr = (struct message_line*)curr->list.next;
+	}
+}
+
+/**
+ * 
+ */
+void undecoded_save(struct message_line *start, struct message_line *end, FILE *fp) {
+
+	int in_header = 1;
+
+	struct message_line *curr = start;
+	while( curr != NULL && curr != end ) {
+
+		if( in_header == 1 ) {
+			printf("HEADER FROM PART WITHOUT ENCODING> %s", curr->s);
+			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
+				in_header = 0;
+			}
+		} else {
+			fwrite(curr->s, 1, strlen(curr->s), fp);
+		}
+
+		curr = (struct message_line*)curr->list.next;
+	}
+
+}
+
+/**
+ * 
+ */
+void save_part(struct message_line *start, struct message_line *end, struct file_description *fd) {
+
+	printf("Saving part to: %s\n", fd->filename);
+	FILE *fp = fopen(fd->filename, "w");
+
+	printf("ENCODING: %s\n", fd->encoding);
+
+	if( strcasestr(fd->encoding, "quoted-printable") != NULL ) {
+		qp_decode_save(start, end, fp);
+	} else if( strcasestr(fd->encoding, "base64") != NULL ) {
+		base64_decode_save(start, end, fp);
+	} else {
+		undecoded_save(start, end, fp);
 	}
 
 	fclose(fp);
@@ -144,13 +235,21 @@ struct file_description* get_file_description(struct message_line *part) {
 	char *encoding = get_header_value("Content-Transfer-Encoding", part);
 	if( encoding != NULL ) {
 		strcpy(fd->encoding, encoding);
-		printf("ENCODING: %s\n", fd->encoding);
+	} else {
+		fd->encoding[0] = '\0';
 	}
 
 	char ext[6];
 	char *content_type = get_header_value("Content-Type", part);
 	if( content_type != NULL ) {
 		strcpy(fd->content_type, content_type);
+
+		if( strcasestr(content_type, "multipart/") != NULL ) {
+			//Don't save multipart-container.
+			free(fd);
+			return NULL;
+		}
+
 		if( strcasestr(content_type, "text/plain") != NULL ) {
 			strcpy(ext, "txt");
 		} else if( strcasestr(content_type, "text/html") != NULL ) {
@@ -159,8 +258,10 @@ struct file_description* get_file_description(struct message_line *part) {
 			strcpy(ext, "pdf");
 		} else if( strcasestr(content_type, "image/jpg") != NULL || strcasestr(content_type, "image/jpeg") != NULL ) {
 			strcpy(ext, "jpg");
-		} else if( strcasestr(content_type, "image/jpg") != NULL || strcasestr(content_type, "image/gid") != NULL ) {
+		} else if( strcasestr(content_type, "image/gif") != NULL ) {
 			strcpy(ext, "gif");
+		} else if( strcasestr(content_type, "image/png") != NULL ) {
+			strcpy(ext, "png");
 		} else {
 			strcpy(ext, "bin");
 		}
@@ -209,16 +310,20 @@ void find_parts(struct message_line *message) {
 					printf("%i *END> %s\n", offset, curr_boundary);
 					curr_boundary[0] = '\0';
 					struct file_description *fd = get_file_description(part_begin);
-					save_part(part_begin, curr, fd);
-					free(fd);
+					if( fd != NULL ) {
+						save_part(part_begin, curr, fd);
+						free(fd);
+					}
 				} else if(part_begin == NULL) {
 					printf("%i *FIRST> %s\n", offset, curr_boundary);
 					part_begin = (struct message_line*)curr->list.next;
 				} else {
 					printf("%i *NEXT> %s\n", offset, curr_boundary);
 					struct file_description *fd = get_file_description(part_begin);
-					save_part(part_begin, curr, fd);
-					free(fd);
+					if( fd != NULL ) {
+						save_part(part_begin, curr, fd);
+						free(fd);
+					}
 					part_begin = (struct message_line*)curr->list.next;
 				}
 			}
@@ -297,6 +402,3 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Ignore empty file\n");
 	}
 }
-
-
-
