@@ -265,7 +265,7 @@ char* get_header_attribute(char *name, char *header_value) {
 	}
 
 	char *result = malloc(strlen(p));
-	
+
 	//Copy chars without white space and quotes
 	int o = 0;
 	while( p[0] != '\0' ) {
@@ -284,7 +284,7 @@ char* get_header_attribute(char *name, char *header_value) {
 		p++;
 	}
 	result[o++] = '\0';
-	
+
 	return result;
 }
 
@@ -368,57 +368,58 @@ void find_parts(struct message_line *message) {
 			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
 				printf("%i END-OF-HEADERS\n\n", curr->line_number);
 				reading_headers = 0;
-			}
-		}
-
-		if( curr_boundary[0] != '\0' ) {
-			char *p = strstr(curr->s+2, curr_boundary);
-			if( p != NULL ) {
-
-				if( part_begin != NULL ) {
-					printf("%i BEGIN WITH> (%i) %s", curr->line_number, part_begin->line_number, part_begin->s);
-					find_parts(part_begin);
-				}
-
-				char *e = curr->s +2 + strlen(curr_boundary);
-				if( strlen(e) > 1 && e[0] == '-' && e[1] == '-' ) {
-					printf("%i *END> %s\n", curr->line_number, curr_boundary);
-					curr_boundary[0] = '\0';
-					struct file_description *fd = get_file_description(part_begin);
-					if( fd != NULL ) {
-						save_part(part_begin, curr, fd);
-						free(fd);
+			} else {
+				char *p = strstr(curr->s, "boundary");
+				if( p != NULL ) {
+					p = strstr(p, "=");
+					if( p != NULL ) {
+						p++;
+						char *e = last_non_whitespace(p);
+						if( e != NULL ) {
+							if( e[0] == ';' )
+								e--;
+							if( p[0] == '"' && e[0] == '"' ) {
+								p++;
+								e--;
+							}
+							strncpy(curr_boundary, p, strlen(p));
+							curr_boundary[e-p+1] = '\0';
+							printf("%i *BOUNDARY> %s\n", curr->line_number, curr_boundary);
+						}
 					}
-				} else if(part_begin == NULL) {
-					printf("%i *FIRST> %s\n", curr->line_number, curr_boundary);
-					part_begin = (struct message_line*)curr->list.next;
-				} else {
-					printf("%i *NEXT> %s\n", curr->line_number, curr_boundary);
-					struct file_description *fd = get_file_description(part_begin);
-					if( fd != NULL ) {
-						save_part(part_begin, curr, fd);
-						free(fd);
-					}
-					part_begin = (struct message_line*)curr->list.next;
 				}
 			}
 		} else {
-			char *p = strstr(curr->s, "boundary");
-			if( p != NULL ) {
-				p = strstr(p, "=");
+
+			if( curr_boundary[0] != '\0' ) {
+				char *p = strstr(curr->s+2, curr_boundary);
 				if( p != NULL ) {
-					p++;
-					char *e = last_non_whitespace(p);
-					if( e != NULL ) {
-						if( e[0] == ';' )
-							e--;
-						if( p[0] == '"' && e[0] == '"' ) {
-							p++;
-							e--;
+
+					if( part_begin != NULL ) {
+						printf("%i BEGIN WITH> (%i) %s", curr->line_number, part_begin->line_number, part_begin->s);
+						find_parts(part_begin);
+					}
+
+					char *e = curr->s +2 + strlen(curr_boundary);
+					if( strlen(e) > 1 && e[0] == '-' && e[1] == '-' ) {
+						printf("%i *END> %s\n", curr->line_number, curr_boundary);
+						curr_boundary[0] = '\0';
+						struct file_description *fd = get_file_description(part_begin);
+						if( fd != NULL ) {
+							save_part(part_begin, curr, fd);
+							free(fd);
 						}
-						strncpy(curr_boundary, p, strlen(p));
-						curr_boundary[e-p+1] = '\0';
-						printf("%i *BOUNDARY> %s\n", curr->line_number, curr_boundary);
+					} else if(part_begin == NULL) {
+						printf("%i *FIRST> %s\n", curr->line_number, curr_boundary);
+						part_begin = (struct message_line*)curr->list.next;
+					} else {
+						printf("%i *NEXT> %s\n", curr->line_number, curr_boundary);
+						struct file_description *fd = get_file_description(part_begin);
+						if( fd != NULL ) {
+							save_part(part_begin, curr, fd);
+							free(fd);
+						}
+						part_begin = (struct message_line*)curr->list.next;
 					}
 				}
 			}
