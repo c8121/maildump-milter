@@ -39,6 +39,7 @@
 struct message_line {
 	struct linked_item list;
 	char s[MAX_LINE_LENGTH];
+	int line_number;
 };
 
 struct file_description {
@@ -46,6 +47,9 @@ struct file_description {
 	char filename[255];
 	char encoding[255];
 };
+
+char *output_dir = "/tmp";
+int last_file_num = 0;
 
 /**
  * 
@@ -179,10 +183,10 @@ void undecoded_save(struct message_line *start, struct message_line *end, FILE *
  */
 void save_part(struct message_line *start, struct message_line *end, struct file_description *fd) {
 
-	printf("Saving part to: %s\n", fd->filename);
+	printf("    Saving part to: %s\n", fd->filename);
 	FILE *fp = fopen(fd->filename, "w");
 
-	printf("ENCODING: %s\n", fd->encoding);
+	printf("    Encoding: %s\n", fd->encoding);
 
 	if( strcasestr(fd->encoding, "quoted-printable") != NULL ) {
 		qp_decode_save(start, end, fp);
@@ -200,29 +204,88 @@ void save_part(struct message_line *start, struct message_line *end, struct file
  */
 char* get_header_value(char *name, struct message_line *part) {
 
+	char *result = NULL;
+
 	struct message_line *curr = part;
 	while( curr != NULL ) {
 
+		char *value = NULL;
+
 		if( strncasecmp(name, curr->s, strlen(name)) == 0 ) {
-			char *p = strstr(curr->s, ":");
-			if( p != NULL ) {
+			//Begin of header
+			value = strstr(curr->s, ":");
+			if( value != NULL ) {
 				//LTrim
-				while( p[0] == ':' || p[0] == ' ' )
-					p++;
-				//RTrim
-				for( char *i=p+strlen(p)-1 ; (i[0] == ' ' || i[0] == '\n' || i[0] == '\r') && i >= p ; i-- )
-					i[0] = '\0';
-				return p;
+				while( value[0] == ':' || value[0] == ' ' )
+					value++;
+			}
+		} else if ( result != NULL ) {
+			if(curr->s[0] == ' ' || curr->s[0] == '\t')
+				value = curr->s; //Next line of header
+			else
+				break; //Begin of next header
+		}
+
+		if( value != NULL ) {
+			if( result == NULL ) {
+				result = malloc(strlen(value)+1);
+				strcpy(result, value);
+			} else {
+				char *tmp = malloc(strlen(result)+strlen(value)+1);
+				strcpy(tmp, result);
+				strcat(tmp, value);
+				free(result);
+				result = malloc(strlen(tmp)+1);
+				strcpy(result, tmp);
 			}
 		}
 
 		if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' )
-			return NULL;
+			break;
 
 		curr = (struct message_line*)curr->list.next;
 	}
 
-	return NULL;
+	return result;
+}
+
+/**
+ * 
+ */
+char* get_header_attribute(char *name, char *header_value) {
+
+	char find[strlen(name)+2];
+	strcpy(find, name);
+	find[strlen(name)] = '=';
+	find[strlen(name)+1] = '\0';
+
+	char *p = strcasestr(header_value, find);
+	if( p == NULL ) {
+		return NULL;
+	}
+
+	char *result = malloc(strlen(p));
+	
+	//Copy chars without white space and quotes
+	int o = 0;
+	while( p[0] != '\0' ) {
+		switch(p[0]) {
+		case ' ':
+		case '\r':
+		case '\n':
+		case '\t':
+		case '"':
+		case '\'':
+			//Ignore
+			break;
+		default:
+			result[o++] = p[0];
+		}
+		p++;
+	}
+	result[o++] = '\0';
+	
+	return result;
 }
 
 /**
@@ -262,15 +325,26 @@ struct file_description* get_file_description(struct message_line *part) {
 			strcpy(ext, "gif");
 		} else if( strcasestr(content_type, "image/png") != NULL ) {
 			strcpy(ext, "png");
+
+		} else if( strcasestr(content_type, "application/") != NULL ) {
+			strcpy(ext, "bin");
+			char *name = get_header_attribute("name", content_type);
+			if( name != NULL ) {
+				char *p = strrchr(name, '.');
+				if( p != NULL )
+					strncpy(ext, p+1, 5);
+			}
+			free(name);
 		} else {
 			strcpy(ext, "bin");
 		}
+
 	} else {
 		fd->content_type[0] = '\0';
 		strcpy(ext, "bin");
 	}
 
-	sprintf(fd->filename, "/tmp/message-part.%s", ext);
+	sprintf(fd->filename, "%s/message-part.%i.%s", output_dir, ++last_file_num, ext);
 
 	return fd;
 }
@@ -285,15 +359,14 @@ void find_parts(struct message_line *message) {
 	curr_boundary[0] = '\0';
 
 	int reading_headers = 1;
-	int offset = 0;
 
 	struct message_line *curr = message;
 	while( curr != NULL ) {
 
 		if( reading_headers == 1 ) {
-			printf("%i HEADER> %s", offset, curr->s);
+			printf("%i HEADER> %s", curr->line_number, curr->s);
 			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
-				printf("%i END-OF-HEADERS\n\n", offset);
+				printf("%i END-OF-HEADERS\n\n", curr->line_number);
 				reading_headers = 0;
 			}
 		}
@@ -302,12 +375,14 @@ void find_parts(struct message_line *message) {
 			char *p = strstr(curr->s+2, curr_boundary);
 			if( p != NULL ) {
 
-				if( part_begin != NULL )
+				if( part_begin != NULL ) {
+					printf("%i BEGIN WITH> (%i) %s", curr->line_number, part_begin->line_number, part_begin->s);
 					find_parts(part_begin);
+				}
 
 				char *e = curr->s +2 + strlen(curr_boundary);
 				if( strlen(e) > 1 && e[0] == '-' && e[1] == '-' ) {
-					printf("%i *END> %s\n", offset, curr_boundary);
+					printf("%i *END> %s\n", curr->line_number, curr_boundary);
 					curr_boundary[0] = '\0';
 					struct file_description *fd = get_file_description(part_begin);
 					if( fd != NULL ) {
@@ -315,10 +390,10 @@ void find_parts(struct message_line *message) {
 						free(fd);
 					}
 				} else if(part_begin == NULL) {
-					printf("%i *FIRST> %s\n", offset, curr_boundary);
+					printf("%i *FIRST> %s\n", curr->line_number, curr_boundary);
 					part_begin = (struct message_line*)curr->list.next;
 				} else {
-					printf("%i *NEXT> %s\n", offset, curr_boundary);
+					printf("%i *NEXT> %s\n", curr->line_number, curr_boundary);
 					struct file_description *fd = get_file_description(part_begin);
 					if( fd != NULL ) {
 						save_part(part_begin, curr, fd);
@@ -343,17 +418,14 @@ void find_parts(struct message_line *message) {
 						}
 						strncpy(curr_boundary, p, strlen(p));
 						curr_boundary[e-p+1] = '\0';
-						printf("%i *BOUNDARY> %s\n", offset, curr_boundary);
+						printf("%i *BOUNDARY> %s\n", curr->line_number, curr_boundary);
 					}
 				}
 			}
 		}
 
 		curr = (struct message_line*)curr->list.next;
-		offset++;
 	}
-
-	printf("%i\n", offset);
 }
 
 /**
@@ -382,6 +454,7 @@ int main(int argc, char *argv[]) {
 	struct message_line *message = NULL;
 	struct message_line *curr_line = NULL; 
 	char line[MAX_LINE_LENGTH];
+	int line_number = 0;
 	while(fgets(line, sizeof(line), fp)) {
 
 		if( message == NULL ) {
@@ -392,6 +465,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		strcpy(curr_line->s, line);
+		curr_line->line_number = ++line_number;
 	}
 
 	fclose(fp);
