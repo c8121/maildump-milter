@@ -34,6 +34,7 @@
 
 #define MAX_LINE_LENGTH 1024
 
+char *parser_program = "./bin/mailparser";
 char *add_to_archive_program = "./bin/archive add";
 
 struct message_line {
@@ -130,6 +131,36 @@ char* save_message(struct message_line *start) {
 }
 
 /**
+ * Caller must free result
+ */
+char* parse_message(char *filename) {
+
+	char command[2048];
+	sprintf(command, "%s \"%s\"", parser_program, filename);
+
+	FILE *cmd = popen(command, "r");
+	if( cmd == NULL ) {
+		fprintf(stderr, "Failed to execute: %s\n", command);
+		return NULL;
+	}
+
+	char line[2048];
+	while( fgets(line, sizeof(line), cmd) ) {
+		printf("PARSE> %s", line);
+	}
+
+	if( feof(cmd) ) {
+		pclose(cmd);
+	} else {
+		fprintf(stderr, "Broken pipe: %s\n", command);
+	}
+
+	char *result = malloc(1024);
+	strcpy(result, "/tmp/message"); //TODO
+
+}
+
+/**
  * 
  */
 int main(int argc, char *argv[]) {
@@ -146,9 +177,11 @@ int main(int argc, char *argv[]) {
 		exit(EX_IOERR);
 	}
 
-	FILE *fp = fopen(message_file, "r");
+	char *parsed_file = parse_message(message_file);
+	
+	FILE *fp = fopen(parsed_file, "r");
 	if( fp == NULL ) {
-		fprintf(stderr, "Failed to open file: %s\n", message_file);
+		fprintf(stderr, "Failed to open file: %s\n", parsed_file);
 		exit(EX_IOERR);
 	}
 
