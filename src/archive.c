@@ -265,7 +265,7 @@ char *get_archive_filename(char *hash) {
 
 	time_t now = time(NULL);
 	char subdir[20];
-	sprintf(subdir, "%lx", now / 60 / 60 / 24 / 7);
+	sprintf(subdir, "%lx", now / 60 / 60 / 24 / 3);
 
 
 	strcat(result, subdir);
@@ -336,6 +336,8 @@ int main(int argc, char *argv[]) {
 					FILE *fp = fopen(metadata_file, "w");
 					fprintf(fp, "NAME: %s\n", filename);
 					fprintf(fp, "ADDED: %li\n", time(NULL));
+					fprintf(fp, "MTIME: %li\n", file_stat.st_mtime);
+					fprintf(fp, "CTIME: %li\n", file_stat.st_ctime);
 					fclose(fp);
 				}
 
