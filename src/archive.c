@@ -182,10 +182,6 @@ void init_storage() {
  */
 char *find_archived_file(char *hash) {
 
-	//TODO: Faster searching by either using some sort of index 
-	//      or searching descending by ctime of subdir
-
-
 	DIR *d = opendir(storage_base_dir);
 	if( d == NULL ) {
 		fprintf(stderr, "Failed to open directory: \"%s\"\n", storage_base_dir);
