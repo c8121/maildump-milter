@@ -41,6 +41,10 @@
 #define METADATA_FILE_EXTENSION ".meta"
 
 char *hash_program = "sha256sum -z";
+//char *hash_program = "sha1sum -z";
+//char *hash_program = "xxhasum";
+//char *hash_program = "xxh64sum";
+
 char *copy_program = "cp -f";
 char *mkdir_program = "mkdir -p";
 
@@ -278,7 +282,7 @@ int main(int argc, char *argv[]) {
 		//printf("FILE: \"%s\"\n", filename);
 
 		char *hash = create_hash(filename);
-		if( hash == NULL || strlen(hash) < 32 ) {
+		if( hash == NULL || strlen(hash) < 8 ) {
 			fprintf(stderr, "Invalid hash: '%s'\n", hash);
 			exit(EX_IOERR);
 		}
