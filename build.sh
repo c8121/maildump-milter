@@ -50,3 +50,4 @@ gcc -o "$binDir/mailparser" "$sourceDir/mailparser.c"
 
 echo "Build archive"
 gcc -o "$binDir/archive" "$sourceDir/archive.c"
+gcc -o "$binDir/mailarchiver" "$sourceDir/mailarchiver.c"
