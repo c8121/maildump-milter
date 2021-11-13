@@ -266,6 +266,7 @@ int main(int argc, char *argv[]) {
 	init_storage();
 
 	char *cmd = argv[1];
+
 	if( strcasecmp(cmd, "add") == 0 ) {
 
 		char *filename = argv[2];
@@ -314,8 +315,29 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
+	} else if( strcasecmp(cmd, "get") == 0 ) {
+
+		char *hash = argv[2];
+		if( strlen(hash) <= STORAGE_SUBDIR_LENGTH ) {
+			fprintf(stderr, "Invliad hash\n");
+			exit(EX_USAGE);
+		}
+
+		char *archive_file = find_archived_file(hash);
+		if( archive_file != NULL ) {
+
+			printf("SOURCE: \"%s\"\n", archive_file);
+			free(archive_file);
+
+		} else {
+			
+			fprintf(stderr, "NOT FOUND: %s\n", hash);
+			
+		}
+
 
 	} else {
 		fprintf(stderr, "Unknown command: %s\n", cmd);
+		exit(EX_USAGE);
 	}
 }
