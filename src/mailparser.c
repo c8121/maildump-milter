@@ -49,7 +49,28 @@ struct file_description {
 };
 
 char *output_dir = "/tmp";
+int show_result_filename_omly = 0;
+
+
 int last_file_num = 0;
+
+/**
+ * Read command line arguments and configure application
+ */
+void configure(int argc, char *argv[]) {
+
+	const char *options = "f";
+	int c;
+
+	while ((c = getopt(argc, argv, options)) != -1) {
+		switch(c) {
+
+		case 'f':
+			show_result_filename_omly = 1;
+			break;
+		}
+	}
+}
 
 /**
  * 
@@ -165,7 +186,10 @@ void undecoded_save(struct message_line *start, struct message_line *end, FILE *
 	while( curr != NULL && curr != end ) {
 
 		if( in_header == 1 ) {
-			printf("%i PART WITHOUT ENCODING> %s", curr->line_number, curr->s);
+
+			if( show_result_filename_omly != 1 )
+				printf("%i PART WITHOUT ENCODING> %s", curr->line_number, curr->s);
+
 			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
 				in_header = 0;
 			}
@@ -183,14 +207,17 @@ void undecoded_save(struct message_line *start, struct message_line *end, FILE *
  */
 void save_part(struct message_line *start, struct message_line *end, struct file_description *fd) {
 
-	printf("    Saving part to: %s\n", fd->filename);
+	if( show_result_filename_omly != 1 )
+		printf("    Saving part to: %s\n", fd->filename);
+
 	FILE *fp = fopen(fd->filename, "w");
 	if( fp == NULL ) {
 		fprintf(stderr, "Failed to create file: %s\n", fd->filename);
 		return;
 	}
 
-	printf("    Encoding: %s\n", fd->encoding);
+	if( show_result_filename_omly != 1 )
+		printf("    Encoding: %s\n", fd->encoding);
 
 	if( strcasestr(fd->encoding, "quoted-printable") != NULL ) {
 		qp_decode_save(start, end, fp);
@@ -264,6 +291,11 @@ void save_message(struct message_line *start) {
 	}
 
 	fclose(fp);
+	
+	if( show_result_filename_omly != 1 )
+		printf("Saved parsed message: %s\n", filename);
+	else
+		printf("%s\n", filename);
 }
 
 /**
@@ -431,9 +463,13 @@ void find_parts(struct message_line *message) {
 	while( curr != NULL ) {
 
 		if( reading_headers == 1 ) {
-			printf("%i HEADER> %s", curr->line_number, curr->s);
+
+			if( show_result_filename_omly != 1 )
+				printf("%i HEADER> %s", curr->line_number, curr->s);
+
 			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
-				printf("%i END-OF-HEADERS\n\n", curr->line_number);
+				if( show_result_filename_omly != 1 )
+					printf("%i END-OF-HEADERS\n\n", curr->line_number);
 				reading_headers = 0;
 			} else {
 				char *p = strstr(curr->s, "boundary");
@@ -451,7 +487,8 @@ void find_parts(struct message_line *message) {
 							}
 							strncpy(curr_boundary, p, strlen(p));
 							curr_boundary[e-p+1] = '\0';
-							printf("%i *BOUNDARY> %s\n", curr->line_number, curr_boundary);
+							if( show_result_filename_omly != 1 )
+								printf("%i *BOUNDARY> %s\n", curr->line_number, curr_boundary);
 						}
 					}
 				}
@@ -463,13 +500,17 @@ void find_parts(struct message_line *message) {
 				if( p != NULL ) {
 
 					if( part_begin != NULL ) {
-						printf("%i BEGIN WITH> (%i) %s", curr->line_number, part_begin->line_number, part_begin->s);
+						if( show_result_filename_omly != 1 )
+							printf("%i BEGIN WITH> (%i) %s", curr->line_number, part_begin->line_number, part_begin->s);
 						find_parts(part_begin);
 					}
 
 					char *e = curr->s +2 + strlen(curr_boundary);
 					if( strlen(e) > 1 && e[0] == '-' && e[1] == '-' ) {
-						printf("%i *END> %s\n", curr->line_number, curr_boundary);
+						
+						if( show_result_filename_omly != 1 )
+							printf("%i *END> %s\n", curr->line_number, curr_boundary);
+						
 						curr_boundary[0] = '\0';
 						struct file_description *fd = get_file_description(part_begin);
 						if( fd != NULL ) {
@@ -478,10 +519,16 @@ void find_parts(struct message_line *message) {
 							free(fd);
 						}
 					} else if(part_begin == NULL) {
-						printf("%i *FIRST> %s\n", curr->line_number, curr_boundary);
+						
+						if( show_result_filename_omly != 1 )
+							printf("%i *FIRST> %s\n", curr->line_number, curr_boundary);
+						
 						part_begin = (struct message_line*)curr->list.next;
 					} else {
-						printf("%i *NEXT> %s\n", curr->line_number, curr_boundary);
+						
+						if( show_result_filename_omly != 1 )	
+							printf("%i *NEXT> %s\n", curr->line_number, curr_boundary);
+						
 						struct file_description *fd = get_file_description(part_begin);
 						if( fd != NULL ) {
 							save_part(part_begin, curr, fd);
@@ -503,12 +550,14 @@ void find_parts(struct message_line *message) {
  */
 int main(int argc, char *argv[]) {
 
-	if( argc < 2 ) {
+	configure(argc, argv);
+	
+	if (argc - optind +1 < 2) {
 		fprintf(stderr, "Missing arguments\n");
 		exit(EX_USAGE);
 	}
 
-	char *message_file = argv[1];
+	char *message_file = argv[optind];
 	struct stat file_stat;
 	if( stat(message_file, &file_stat) != 0 ) {
 		fprintf(stderr, "File not found: %s\n", message_file);
