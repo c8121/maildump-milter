@@ -165,7 +165,7 @@ void undecoded_save(struct message_line *start, struct message_line *end, FILE *
 	while( curr != NULL && curr != end ) {
 
 		if( in_header == 1 ) {
-			printf("HEADER FROM PART WITHOUT ENCODING> %s", curr->s);
+			printf("%i PART WITHOUT ENCODING> %s", curr->line_number, curr->s);
 			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
 				in_header = 0;
 			}
@@ -194,6 +194,64 @@ void save_part(struct message_line *start, struct message_line *end, struct file
 		base64_decode_save(start, end, fp);
 	} else {
 		undecoded_save(start, end, fp);
+	}
+
+	fclose(fp);
+}
+
+
+/**
+ * Replace content by file reference
+ */
+void replace_content(struct message_line *start, struct message_line *end, struct file_description *fd) {
+
+	struct message_line *content_start = NULL;
+
+	int in_header = 1;
+
+	struct message_line *curr = start;
+	while( curr != NULL && curr != end && content_start == NULL) {
+
+		if( in_header == 1 ) {
+			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
+				in_header = 0;
+			}
+		} else {
+			content_start = curr;
+		}
+
+		curr = (struct message_line*)curr->list.next;
+	}
+
+	if( content_start != NULL ) {
+		
+		char reference[MAX_LINE_LENGTH + 100];
+		sprintf(content_start->s, "{{REF((%s))}}\r\n", fd->filename);
+
+		struct message_line *start_free = (struct message_line*)content_start->list.next;
+		struct message_line *end_free = (struct message_line*)end->list.prev;
+		end_free->list.next = NULL;
+
+		content_start->list.next = (void*)end;
+		end->list.prev = (void*)content_start;
+
+		linked_item_free(start_free, NULL);
+	}
+}
+
+/**
+ * 
+ */
+void save_message(struct message_line *start) {
+
+	char filename[1024];
+	sprintf(filename, "%s/message", output_dir);
+
+	FILE *fp = fopen(filename, "w");
+	struct message_line *curr = start;
+	while( curr != NULL ) {
+		fwrite(curr->s, 1, strlen(curr->s), fp);
+		curr = (struct message_line*)curr->list.next;
 	}
 
 	fclose(fp);
@@ -407,6 +465,7 @@ void find_parts(struct message_line *message) {
 						struct file_description *fd = get_file_description(part_begin);
 						if( fd != NULL ) {
 							save_part(part_begin, curr, fd);
+							replace_content(part_begin, curr, fd);
 							free(fd);
 						}
 					} else if(part_begin == NULL) {
@@ -417,6 +476,7 @@ void find_parts(struct message_line *message) {
 						struct file_description *fd = get_file_description(part_begin);
 						if( fd != NULL ) {
 							save_part(part_begin, curr, fd);
+							replace_content(part_begin, curr, fd);
 							free(fd);
 						}
 						part_begin = (struct message_line*)curr->list.next;
@@ -473,6 +533,7 @@ int main(int argc, char *argv[]) {
 
 	if( message != NULL ) {
 		find_parts(message);
+		save_message(message);
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
 	}
