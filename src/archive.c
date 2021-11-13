@@ -20,9 +20,9 @@
 /*
  * Saves files into a "storage" directory
  *
- * - Each file must extist only once, based on sha256 of file contents
+ * - Each file must extist only once, based on hash of file contents
  * - To enable incremental backups, storage is structured by direcotries on first level containig 
- *   files added in a certain period. There directories will by touched later on. 
+ *   files added in a certain period. There directories will not be touched later on. 
  */
 
 
@@ -66,6 +66,8 @@ void usage() {
 
 
 /**
+ * Get a hash calculated from file contents.
+ * 
  * Caller must free result 
  */
 char *create_hash(char *filename) {
@@ -103,7 +105,9 @@ char *create_hash(char *filename) {
 
 
 /**
+ * Execute a command, ignore output.
  * 
+ * Return 0 on success
  */
 int exec_command(char *command) {
 
@@ -129,7 +133,9 @@ int exec_command(char *command) {
 }
 
 /**
- *  
+ * Copy a file, create destination dir if create_dir == 1
+ * 
+ * Return 0 on success
  */
 int cp(char *source, char *dest, int create_dir) {
 
@@ -170,7 +176,8 @@ int cp(char *source, char *dest, int create_dir) {
 }
 
 /**
- * 
+ * Check storage directory
+ * Exit program on failure
  */
 void init_storage() {
 	struct stat file_stat;
@@ -182,6 +189,8 @@ void init_storage() {
 
 
 /**
+ * Find file path in storage of file related to given hash.
+ * 
  * Caller must free result
  */
 char *find_archived_file(char *hash) {
@@ -227,6 +236,9 @@ char *find_archived_file(char *hash) {
 }
 
 /**
+ * Build a full file path to store file with given hash.
+ * First directory underneath storage directory reflects current time period
+ * 
  * Caller must free result 
  */
 char *get_archive_filename(char *hash) {
