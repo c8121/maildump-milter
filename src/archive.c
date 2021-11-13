@@ -321,11 +321,16 @@ int main(int argc, char *argv[]) {
 					//printf("CREATE: \"%s\"\n", metadata_file);
 
 					FILE *fp = fopen(metadata_file, "w");
-					fprintf(fp, "NAME: %s\n", filename);
-					fprintf(fp, "ADDED: %li\n", time(NULL));
-					fprintf(fp, "MTIME: %li\n", file_stat.st_mtime);
-					fprintf(fp, "CTIME: %li\n", file_stat.st_ctime);
-					fclose(fp);
+					if( fp == NULL ) {
+						fprintf(stderr, "Failed to create meta file\n");
+						exit(EX_IOERR);
+					} else {
+						fprintf(fp, "NAME: %s\n", filename);
+						fprintf(fp, "ADDED: %li\n", time(NULL));
+						fprintf(fp, "MTIME: %li\n", file_stat.st_mtime);
+						fprintf(fp, "CTIME: %li\n", file_stat.st_ctime);
+						fclose(fp);
+					}
 				}
 
 				printf("%s\n", hash);
@@ -347,9 +352,9 @@ int main(int argc, char *argv[]) {
 			free(archive_file);
 
 		} else {
-			
+
 			fprintf(stderr, "NOT FOUND: %s\n", hash);
-			
+
 		}
 
 

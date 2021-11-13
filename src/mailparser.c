@@ -185,6 +185,10 @@ void save_part(struct message_line *start, struct message_line *end, struct file
 
 	printf("    Saving part to: %s\n", fd->filename);
 	FILE *fp = fopen(fd->filename, "w");
+	if( fp == NULL ) {
+		fprintf(stderr, "Failed to create file: %s\n", fd->filename);
+		return;
+	}
 
 	printf("    Encoding: %s\n", fd->encoding);
 
@@ -224,7 +228,7 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 	}
 
 	if( content_start != NULL ) {
-		
+
 		char reference[MAX_LINE_LENGTH + 100];
 		sprintf(content_start->s, "{{REF((%s))}}\r\n", fd->filename);
 
@@ -248,6 +252,11 @@ void save_message(struct message_line *start) {
 	sprintf(filename, "%s/message", output_dir);
 
 	FILE *fp = fopen(filename, "w");
+	if( fp == NULL ) {
+		fprintf(stderr, "Failed to create file: %s\n", filename);
+		return;
+	}
+
 	struct message_line *curr = start;
 	while( curr != NULL ) {
 		fwrite(curr->s, 1, strlen(curr->s), fp);
