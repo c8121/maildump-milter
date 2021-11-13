@@ -72,7 +72,7 @@ void usage() {
  */
 char *create_hash(char *filename) {
 
-	char command[512];
+	char command[2048];
 	sprintf(command, "%s \"%s\"", hash_program, filename);
 
 	FILE *cmd = popen(command, "r");

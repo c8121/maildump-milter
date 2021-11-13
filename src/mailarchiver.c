@@ -34,6 +34,8 @@
 
 #define MAX_LINE_LENGTH 1024
 
+char *add_to_archive_program = "./bin/archive add";
+
 struct message_line {
 	struct linked_item list;
 	char s[MAX_LINE_LENGTH];
@@ -45,12 +47,37 @@ char *output_dir = "/tmp";
  * Caller must free result
  */
 char* add_file_to_archive(char *filename) {
-	printf("ADD %s\n", filename);
 
-	char *hash = malloc(32);
-	strcpy(hash, "HASH-TO-BE-CREATED");
+	char command[2048];
+	sprintf(command, "%s \"%s\"", add_to_archive_program, filename);
 
-	return hash;
+	FILE *cmd = popen(command, "r");
+	if( cmd == NULL ) {
+		fprintf(stderr, "Failed to execute: %s\n", command);
+		return NULL;
+	}
+
+	char *result = malloc(2048);
+
+	char line[2048];
+	while( fgets(line, sizeof(line), cmd) ) {
+		//printf("HASH> %s\n", line);
+		strcpy(result, line);
+	}
+
+	if( feof(cmd) ) {
+		pclose(cmd);
+	} else {
+		fprintf(stderr, "Broken pipe: %s\n", command);
+	}
+
+	char *e = strchr(result, '\n');
+	if( e != NULL ) {
+		e[0] = '\0';
+	}
+
+	return result;
+
 }
 
 /**
