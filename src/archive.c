@@ -176,30 +176,6 @@ void init_storage() {
 	}
 }
 
-/**
- * Caller must free result
- */
-int find_dir_entry(char *dirname, char *name) {
-
-	DIR *d = opendir(dirname);
-	if( d == NULL ) {
-		fprintf(stderr, "Failed to open directory: \"%s\"\n", dirname);
-		return -1;
-	}
-
-	int result = -1;
-
-	struct dirent *entry;
-	while ((entry = readdir(d)) != NULL) {
-		if( strcmp(entry->d_name, name) == 0 ) {
-			result = 0;
-			break;
-		}
-	}
-	closedir(d);
-
-	return result;
-}
 
 /**
  * Caller must free result
@@ -235,16 +211,14 @@ char *find_archived_file(char *hash) {
 		sprintf(curr, "%s/%s", storage_base_dir, entry->d_name);
 		printf("Looking for %s in %s\n", subdir, curr);
 
-		if( find_dir_entry(curr, subdir) == 0 ) {
-			result = malloc(strlen(curr) + strlen(subdir) + strlen(hash) + 3);
-			sprintf(result, "%s/%s/%s", curr, subdir, hash + STORAGE_SUBDIR_LENGTH);
+		result = malloc(strlen(curr) + strlen(subdir) + strlen(hash) + 3);
+		sprintf(result, "%s/%s/%s", curr, subdir, hash + STORAGE_SUBDIR_LENGTH);
 
-			if( stat(result, &file_stat) != 0 ) {
-				free(result);
-				result = NULL;
-			} else {
-				break;
-			}
+		if( stat(result, &file_stat) != 0 ) {
+			free(result);
+			result = NULL;
+		} else {
+			break;
 		}
 	}
 	closedir(d);
