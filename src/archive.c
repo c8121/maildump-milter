@@ -40,7 +40,7 @@
 #define STORAGE_SUBDIR_LENGTH 2
 #define METADATA_FILE_EXTENSION ".meta"
 
-char *sha256_program = "sha256sum -z";
+char *hash_program = "sha256sum -z";
 char *copy_program = "cp -f";
 char *mkdir_program = "mkdir -p";
 
@@ -64,10 +64,10 @@ void usage() {
 /**
  * Caller must free result 
  */
-char *sha256sum(char *filename) {
+char *create_hash(char *filename) {
 
 	char command[512];
-	sprintf(command, "%s \"%s\"", sha256_program, filename);
+	sprintf(command, "%s \"%s\"", hash_program, filename);
 
 	FILE *cmd = popen(command, "r");
 	if( cmd == NULL ) {
@@ -112,7 +112,7 @@ int exec_command(char *command) {
 
 	char line[1024];
 	while( fgets(line, sizeof(line), cmd) ) {
-		printf("%s", line);
+		//printf("%s", line);
 	}
 
 	if( feof(cmd) ) {
@@ -205,7 +205,7 @@ char *find_archived_file(char *hash) {
 
 		char curr[strlen(storage_base_dir) + strlen(entry->d_name) + 2];
 		sprintf(curr, "%s/%s", storage_base_dir, entry->d_name);
-		printf("Looking for %s in %s\n", subdir, curr);
+		//printf("Looking for %s in %s\n", subdir, curr);
 
 		result = malloc(strlen(curr) + strlen(subdir) + strlen(hash) + 3);
 		sprintf(result, "%s/%s/%s", curr, subdir, hash + STORAGE_SUBDIR_LENGTH);
@@ -275,25 +275,25 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "File not found: %s\n", filename);
 			exit(EX_IOERR);
 		}
-		printf("FILE: \"%s\"\n", filename);
+		//printf("FILE: \"%s\"\n", filename);
 
-		char *hash = sha256sum(filename);
+		char *hash = create_hash(filename);
 		if( hash == NULL || strlen(hash) < 32 ) {
 			fprintf(stderr, "Invalid hash: '%s'\n", hash);
 			exit(EX_IOERR);
 		}
-		printf("HASH: \"%s\"\n", hash);
+		//printf("HASH: \"%s\"\n", hash);
 
 		char *archive_file = find_archived_file(hash);
 		if( archive_file != NULL ) {
 
-			printf("SOURCE: \"%s\"\n", archive_file);
+			printf("%s\n", hash);
 			free(archive_file);
 
 		} else {
 
 			archive_file = get_archive_filename(hash);
-			printf("CREATE: \"%s\"\n", archive_file);
+			//printf("CREATE: \"%s\"\n", archive_file);
 			if( cp(filename, archive_file, 1) != 0 ) {
 				fprintf(stderr, "Failed to copy file: \"%s\" to \"%s\"\n", filename, archive_file);
 			} else {
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
 
 					char metadata_file[strlen(archive_file) + strlen(METADATA_FILE_EXTENSION)+1];
 					sprintf(metadata_file, "%s%s", archive_file, METADATA_FILE_EXTENSION);
-					printf("CREATE: \"%s\"\n", metadata_file);
+					//printf("CREATE: \"%s\"\n", metadata_file);
 
 					FILE *fp = fopen(metadata_file, "w");
 					fprintf(fp, "NAME: %s\n", filename);
@@ -312,6 +312,7 @@ int main(int argc, char *argv[]) {
 					fclose(fp);
 				}
 
+				printf("%s\n", hash);
 			}
 		}
 
@@ -326,7 +327,7 @@ int main(int argc, char *argv[]) {
 		char *archive_file = find_archived_file(hash);
 		if( archive_file != NULL ) {
 
-			printf("SOURCE: \"%s\"\n", archive_file);
+			printf("%s\n", archive_file);
 			free(archive_file);
 
 		} else {
