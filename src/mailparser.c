@@ -34,13 +34,7 @@
 #include "../lib/jouni-malinen/base64.c"
 #include "./lib/qp.c"
 
-#define MAX_LINE_LENGTH 1024
-
-struct message_line {
-	struct linked_item list;
-	char s[MAX_LINE_LENGTH];
-	int line_number;
-};
+#include "./lib/multipart_parser.c"
 
 struct file_description {
 	char content_type[255];
@@ -49,7 +43,7 @@ struct file_description {
 };
 
 char *output_dir = "/tmp";
-int show_result_filename_omly = 0;
+int show_result_filename_only = 0;
 
 
 int last_file_num = 0;
@@ -66,7 +60,7 @@ void configure(int argc, char *argv[]) {
 		switch(c) {
 
 		case 'f':
-			show_result_filename_omly = 1;
+			show_result_filename_only = 1;
 			break;
 		}
 	}
@@ -187,7 +181,7 @@ void undecoded_save(struct message_line *start, struct message_line *end, FILE *
 
 		if( in_header == 1 ) {
 
-			if( show_result_filename_omly != 1 )
+			if( show_result_filename_only != 1 )
 				printf("%i PART WITHOUT ENCODING> %s", curr->line_number, curr->s);
 
 			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
@@ -207,7 +201,7 @@ void undecoded_save(struct message_line *start, struct message_line *end, FILE *
  */
 void save_part(struct message_line *start, struct message_line *end, struct file_description *fd) {
 
-	if( show_result_filename_omly != 1 )
+	if( show_result_filename_only != 1 )
 		printf("    Saving part to: %s\n", fd->filename);
 
 	FILE *fp = fopen(fd->filename, "w");
@@ -216,7 +210,7 @@ void save_part(struct message_line *start, struct message_line *end, struct file
 		return;
 	}
 
-	if( show_result_filename_omly != 1 )
+	if( show_result_filename_only != 1 )
 		printf("    Encoding: %s\n", fd->encoding);
 
 	if( strcasestr(fd->encoding, "quoted-printable") != NULL ) {
@@ -291,101 +285,14 @@ void save_message(struct message_line *start) {
 	}
 
 	fclose(fp);
-	
-	if( show_result_filename_omly != 1 )
+
+	if( show_result_filename_only != 1 )
 		printf("Saved parsed message: %s\n", filename);
 	else
 		printf("%s\n", filename);
 }
 
-/**
- * 
- */
-char* get_header_value(char *name, struct message_line *part) {
 
-	char *result = NULL;
-
-	struct message_line *curr = part;
-	while( curr != NULL ) {
-
-		char *value = NULL;
-
-		if( strncasecmp(name, curr->s, strlen(name)) == 0 ) {
-			//Begin of header
-			value = strstr(curr->s, ":");
-			if( value != NULL ) {
-				//LTrim
-				while( value[0] == ':' || value[0] == ' ' )
-					value++;
-			}
-		} else if ( result != NULL ) {
-			if(curr->s[0] == ' ' || curr->s[0] == '\t')
-				value = curr->s; //Next line of header
-			else
-				break; //Begin of next header
-		}
-
-		if( value != NULL ) {
-			if( result == NULL ) {
-				result = malloc(strlen(value)+1);
-				strcpy(result, value);
-			} else {
-				char *tmp = malloc(strlen(result)+strlen(value)+1);
-				strcpy(tmp, result);
-				strcat(tmp, value);
-				free(result);
-				result = malloc(strlen(tmp)+1);
-				strcpy(result, tmp);
-			}
-		}
-
-		if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' )
-			break;
-
-		curr = (struct message_line*)curr->list.next;
-	}
-
-	return result;
-}
-
-/**
- * 
- */
-char* get_header_attribute(char *name, char *header_value) {
-
-	char find[strlen(name)+2];
-	strcpy(find, name);
-	find[strlen(name)] = '=';
-	find[strlen(name)+1] = '\0';
-
-	char *p = strcasestr(header_value, find);
-	if( p == NULL ) {
-		return NULL;
-	}
-
-	char *result = malloc(strlen(p));
-
-	//Copy chars without white space and quotes
-	int o = 0;
-	while( p[0] != '\0' ) {
-		switch(p[0]) {
-		case ' ':
-		case '\r':
-		case '\n':
-		case '\t':
-		case '"':
-		case '\'':
-			//Ignore
-			break;
-		default:
-			result[o++] = p[0];
-		}
-		p++;
-	}
-	result[o++] = '\0';
-
-	return result;
-}
 
 /**
  * 
@@ -451,98 +358,15 @@ struct file_description* get_file_description(struct message_line *part) {
 /**
  * 
  */
-void find_parts(struct message_line *message) {
+void export_part_content(void *start, void *end) {
 
-	struct message_line *part_begin = NULL;
-	char curr_boundary[MAX_LINE_LENGTH+3];
-	curr_boundary[0] = '\0';
-
-	int reading_headers = 1;
-
-	struct message_line *curr = message;
-	while( curr != NULL ) {
-
-		if( reading_headers == 1 ) {
-
-			if( show_result_filename_omly != 1 )
-				printf("%i HEADER> %s", curr->line_number, curr->s);
-
-			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
-				if( show_result_filename_omly != 1 )
-					printf("%i END-OF-HEADERS\n\n", curr->line_number);
-				reading_headers = 0;
-			} else {
-				char *p = strstr(curr->s, "boundary");
-				if( p != NULL ) {
-					p = strstr(p, "=");
-					if( p != NULL ) {
-						p++;
-						char *e = last_non_whitespace(p);
-						if( e != NULL ) {
-							if( e[0] == ';' )
-								e--;
-							if( p[0] == '"' && e[0] == '"' ) {
-								p++;
-								e--;
-							}
-							strncpy(curr_boundary, p, strlen(p));
-							curr_boundary[e-p+1] = '\0';
-							if( show_result_filename_omly != 1 )
-								printf("%i *BOUNDARY> %s\n", curr->line_number, curr_boundary);
-						}
-					}
-				}
-			}
-		} else {
-
-			if( curr_boundary[0] != '\0' ) {
-				char *p = strstr(curr->s+2, curr_boundary);
-				if( p != NULL ) {
-
-					if( part_begin != NULL ) {
-						if( show_result_filename_omly != 1 )
-							printf("%i BEGIN WITH> (%i) %s", curr->line_number, part_begin->line_number, part_begin->s);
-						find_parts(part_begin);
-					}
-
-					char *e = curr->s +2 + strlen(curr_boundary);
-					if( strlen(e) > 1 && e[0] == '-' && e[1] == '-' ) {
-						
-						if( show_result_filename_omly != 1 )
-							printf("%i *END> %s\n", curr->line_number, curr_boundary);
-						
-						curr_boundary[0] = '\0';
-						struct file_description *fd = get_file_description(part_begin);
-						if( fd != NULL ) {
-							save_part(part_begin, curr, fd);
-							replace_content(part_begin, curr, fd);
-							free(fd);
-						}
-					} else if(part_begin == NULL) {
-						
-						if( show_result_filename_omly != 1 )
-							printf("%i *FIRST> %s\n", curr->line_number, curr_boundary);
-						
-						part_begin = (struct message_line*)curr->list.next;
-					} else {
-						
-						if( show_result_filename_omly != 1 )	
-							printf("%i *NEXT> %s\n", curr->line_number, curr_boundary);
-						
-						struct file_description *fd = get_file_description(part_begin);
-						if( fd != NULL ) {
-							save_part(part_begin, curr, fd);
-							replace_content(part_begin, curr, fd);
-							free(fd);
-						}
-						part_begin = (struct message_line*)curr->list.next;
-					}
-				}
-			}
-		}
-
-		curr = (struct message_line*)curr->list.next;
+	struct file_description *fd = get_file_description(start);
+	if( fd != NULL ) {
+		save_part(start, end, fd);
+		replace_content(start, end, fd);
+		free(fd);
 	}
+
 }
 
 /**
@@ -551,7 +375,7 @@ void find_parts(struct message_line *message) {
 int main(int argc, char *argv[]) {
 
 	configure(argc, argv);
-	
+
 	if (argc - optind +1 < 2) {
 		fprintf(stderr, "Missing arguments\n");
 		exit(EX_USAGE);
@@ -590,7 +414,7 @@ int main(int argc, char *argv[]) {
 	fclose(fp);
 
 	if( message != NULL ) {
-		find_parts(message);
+		find_parts(message, &export_part_content, show_result_filename_only == 1 ? 0 : 1);
 		save_message(message);
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
