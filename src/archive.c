@@ -53,13 +53,19 @@ int save_metadata = 1;
 
 void usage() {
 	printf("Usage:\n");
-	printf("    archive <command> <file>\n");
+	printf("    archive add <file>\n");
+	printf("    archive get <hash>\n");
+	printf("    archive copy <hash> <file>\n");
 	printf("\n");
 	printf("Commands:\n");
 	printf("    add: Add a file to archive\n");
 	printf("         Returns the ID (=hash) of the file\n");
 	printf("\n");
 	printf("    get: Get a file by its ID (hash) from archive\n");
+	printf("         Returns the path of the file\n");
+	printf("\n");
+	printf("    copy: Get a file by its ID (hash) from archive\n");
+	printf("         Copy the file to another file\n");
 	printf("\n");
 }
 
@@ -271,6 +277,127 @@ char *get_archive_filename(char *hash) {
 /**
  * 
  */
+void copy_from_archive(int argc, char *argv[]) {
+
+	if( argc < 4 ) {
+		fprintf(stderr, "Missing arguments\n");
+		usage();
+		exit(EX_USAGE);
+	}
+
+	char *hash = argv[2];
+	if( strlen(hash) <= STORAGE_SUBDIR_LENGTH ) {
+		fprintf(stderr, "Invliad hash\n");
+		exit(EX_USAGE);
+	}
+
+	char *destination = argv[3];
+	struct stat file_stat;
+	if( stat(destination, &file_stat) == 0 ) {
+		fprintf(stderr, "Destination file already exists: %s\n", destination);
+		exit(EX_IOERR);
+	}
+
+	char *archive_file = find_archived_file(hash);
+	if( archive_file != NULL ) {
+
+		cp(archive_file, destination, 0);
+		printf("%s\n", destination);
+		free(archive_file);
+
+	} else {
+
+		fprintf(stderr, "NOT FOUND: %s\n", hash);
+
+	}
+
+}
+
+/**
+ * 
+ */
+void get_from_archive(int argc, char *argv[]) {
+
+	char *hash = argv[2];
+	if( strlen(hash) <= STORAGE_SUBDIR_LENGTH ) {
+		fprintf(stderr, "Invliad hash\n");
+		exit(EX_USAGE);
+	}
+
+	char *archive_file = find_archived_file(hash);
+	if( archive_file != NULL ) {
+
+		printf("%s\n", archive_file);
+		free(archive_file);
+
+	} else {
+
+		fprintf(stderr, "NOT FOUND: %s\n", hash);
+
+	}
+}
+
+/**
+ * 
+ */
+void add_to_archive(int argc, char *argv[]) {
+
+	char *filename = argv[2];
+	struct stat file_stat;
+	if( stat(filename, &file_stat) != 0 ) {
+		fprintf(stderr, "File not found: %s\n", filename);
+		exit(EX_IOERR);
+	}
+	//printf("FILE: \"%s\"\n", filename);
+
+	char *hash = create_hash(filename);
+	if( hash == NULL || strlen(hash) < 8 ) {
+		fprintf(stderr, "Invalid hash: '%s'\n", hash);
+		exit(EX_IOERR);
+	}
+	//printf("HASH: \"%s\"\n", hash);
+
+	char *archive_file = find_archived_file(hash);
+	if( archive_file != NULL ) {
+
+		printf("%s\n", hash);
+		free(archive_file);
+
+	} else {
+
+		archive_file = get_archive_filename(hash);
+		//printf("CREATE: \"%s\"\n", archive_file);
+		if( cp(filename, archive_file, 1) != 0 ) {
+			fprintf(stderr, "Failed to copy file: \"%s\" to \"%s\"\n", filename, archive_file);
+		} else {
+
+			if( save_metadata != 0 ) {
+
+				char metadata_file[strlen(archive_file) + strlen(METADATA_FILE_EXTENSION)+1];
+				sprintf(metadata_file, "%s%s", archive_file, METADATA_FILE_EXTENSION);
+				//printf("CREATE: \"%s\"\n", metadata_file);
+
+				FILE *fp = fopen(metadata_file, "w");
+				if( fp == NULL ) {
+					fprintf(stderr, "Failed to create meta file\n");
+					exit(EX_IOERR);
+				} else {
+					fprintf(fp, "NAME: %s\n", filename);
+					fprintf(fp, "ADDED: %li\n", time(NULL));
+					fprintf(fp, "MTIME: %li\n", file_stat.st_mtime);
+					fprintf(fp, "CTIME: %li\n", file_stat.st_ctime);
+					fclose(fp);
+				}
+			}
+
+			printf("%s\n", hash);
+		}
+	}
+}
+
+/**
+ * 
+ */
 int main(int argc, char *argv[]) {
 
 	if( argc < 3 ) {
@@ -284,80 +411,11 @@ int main(int argc, char *argv[]) {
 	char *cmd = argv[1];
 
 	if( strcasecmp(cmd, "add") == 0 ) {
-
-		char *filename = argv[2];
-		struct stat file_stat;
-		if( stat(filename, &file_stat) != 0 ) {
-			fprintf(stderr, "File not found: %s\n", filename);
-			exit(EX_IOERR);
-		}
-		//printf("FILE: \"%s\"\n", filename);
-
-		char *hash = create_hash(filename);
-		if( hash == NULL || strlen(hash) < 8 ) {
-			fprintf(stderr, "Invalid hash: '%s'\n", hash);
-			exit(EX_IOERR);
-		}
-		//printf("HASH: \"%s\"\n", hash);
-
-		char *archive_file = find_archived_file(hash);
-		if( archive_file != NULL ) {
-
-			printf("%s\n", hash);
-			free(archive_file);
-
-		} else {
-
-			archive_file = get_archive_filename(hash);
-			//printf("CREATE: \"%s\"\n", archive_file);
-			if( cp(filename, archive_file, 1) != 0 ) {
-				fprintf(stderr, "Failed to copy file: \"%s\" to \"%s\"\n", filename, archive_file);
-			} else {
-
-				if( save_metadata != 0 ) {
-
-					char metadata_file[strlen(archive_file) + strlen(METADATA_FILE_EXTENSION)+1];
-					sprintf(metadata_file, "%s%s", archive_file, METADATA_FILE_EXTENSION);
-					//printf("CREATE: \"%s\"\n", metadata_file);
-
-					FILE *fp = fopen(metadata_file, "w");
-					if( fp == NULL ) {
-						fprintf(stderr, "Failed to create meta file\n");
-						exit(EX_IOERR);
-					} else {
-						fprintf(fp, "NAME: %s\n", filename);
-						fprintf(fp, "ADDED: %li\n", time(NULL));
-						fprintf(fp, "MTIME: %li\n", file_stat.st_mtime);
-						fprintf(fp, "CTIME: %li\n", file_stat.st_ctime);
-						fclose(fp);
-					}
-				}
-
-				printf("%s\n", hash);
-			}
-		}
-
+		add_to_archive(argc, argv);
 	} else if( strcasecmp(cmd, "get") == 0 ) {
-
-		char *hash = argv[2];
-		if( strlen(hash) <= STORAGE_SUBDIR_LENGTH ) {
-			fprintf(stderr, "Invliad hash\n");
-			exit(EX_USAGE);
-		}
-
-		char *archive_file = find_archived_file(hash);
-		if( archive_file != NULL ) {
-
-			printf("%s\n", archive_file);
-			free(archive_file);
-
-		} else {
-
-			fprintf(stderr, "NOT FOUND: %s\n", hash);
-
-		}
-
-
+		get_from_archive(argc, argv);
+	} else if( strcasecmp(cmd, "copy") == 0 ) {
+		copy_from_archive(argc, argv);
 	} else {
 		fprintf(stderr, "Unknown command: %s\n", cmd);
 		exit(EX_USAGE);
