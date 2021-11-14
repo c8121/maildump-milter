@@ -58,3 +58,65 @@ char* qp_decode(const char *body)
 
 	return out;
 }
+
+char* qp_encode(const unsigned char *body, size_t len) {
+
+	size_t out_len = len * 1.2 + 6;
+	char *out = malloc(out_len);
+	
+	int li = 0;
+	int o = 0;
+	for( int i=0 ; i<len ; i++ ) {
+		
+		if( o >= out_len - 3 ) {
+			out_len += 100;
+			char *tmp = malloc(out_len);
+			strcpy(tmp, out);
+			free(out);
+			out = tmp;
+		}
+		
+		if( body[i] == '\n' ) {
+			//Single <LF> to <CR><LF>
+			out[o++] = '\r';
+			out[o++] = '\n';
+		} else if( i < (len-1) && body[i] == '\r' && body[i+1] == '\n' ) {
+			//<CR><LF> as it is
+			out[o++] = '\r';
+			out[o++] = '\n';
+			i++;
+		} else if ( body[i] == '\r' ) {
+			//Single <CR> to <CR><LF>
+			out[o++] = '\r';
+			out[o++] = '\n';
+		} else if( (body[i] >= 32 && body[i] <= 60) || (body[i] >= 62 && body[i] <= 126) ) {
+			//Allowed chars
+			out[o++] = body[i];
+			li++;
+		} else {
+			//Encoded chars
+			if( li >= 70 ) {
+				//Max line length reached
+				sprintf(out+o, "=\r\n");
+				o += 3;
+				li = 0;
+			}
+			sprintf(out+o, "=%02X", body[i]);
+			o += 3;
+			li += 3;
+		}
+
+		if( body[i] == '\r' || body[i] == '\n' ) {
+			//New line just started, reset line counter
+			li = 0;
+		} else if( li >= 73 ) {
+			//Max line length reached
+			sprintf(out+o, "=\r\n");
+			o += 3;
+			li = 0;
+		}
+	}
+	out[o++] = '\0';
+	
+	return out;
+}

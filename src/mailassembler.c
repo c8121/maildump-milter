@@ -38,6 +38,10 @@
 
 #include "./lib/multipart_parser.c"
 
+void usage() {
+	printf("Usage: mailassembler <parsed file> <output file>\n");
+}
+
 
 /**
  * 
@@ -76,17 +80,32 @@ void replace_base64_content(struct message_line *ref, FILE *fp) {
  */
 void replace_qp_content(struct message_line *ref, FILE *fp) {
 
-	//TODO
-	
-	/*struct message_line *append = NULL;
+	struct message_line *append = NULL;
 
-	char line[MAX_LINE_LENGTH];
-	while(fgets(line, sizeof(line), fp)) {
+	char chunk[MAX_LINE_LENGTH];
+	size_t r;
+	while(r = fread(chunk, 1, 1024, fp)) {
 
-		append = append == NULL ? ref : linked_item_create(append, sizeof(struct message_line));
-		strcpy(append->s, line);
+		char *out = qp_encode(chunk, r);
+		size_t enc_len = strlen(out);
 
-	}*/
+		char *p = out;
+		while( p < out+enc_len ) {
+			append = append == NULL ? ref : linked_item_create(append, sizeof(struct message_line));
+			char *e = strchr(p, '\n');
+			if( e != NULL ) {
+				strncpy(append->s, p, e-p+2);
+				append->s[e-p+1] = '\0';
+				p = e+1;
+			} else {
+				strcpy(append->s, p);
+				break;
+			}
+		}
+
+		free(out);
+
+	}
 }
 
 /**
@@ -122,7 +141,7 @@ void replace_content(struct message_line *ref, char *encoding, char *filename) {
 		exit(EX_IOERR);
 	}
 
-	if( strcasestr(fd->encoding, "quoted-printable") != NULL ) {
+	if( strcasestr(encoding, "quoted-printable") != NULL ) {
 		replace_qp_content(ref, fp);
 	} else if( strcasestr(encoding, "base64") != NULL ) {
 		replace_base64_content(ref, fp);
@@ -186,6 +205,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc < 3) {
 		fprintf(stderr, "Missing arguments\n");
+		usage();
 		exit(EX_USAGE);
 	}
 

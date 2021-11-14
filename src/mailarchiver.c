@@ -35,6 +35,7 @@
 #define MAX_LINE_LENGTH 1024
 
 char *parser_program = "./bin/mailparser -f";
+char *assembler_program = "./bin/mailparser -f";
 char *add_to_archive_program = "./bin/archive add";
 char *copy_from_archive_program = "./bin/archive copy";
 
@@ -140,6 +141,7 @@ char* add_file_to_archive(char *filename) {
 	}
 
 	char *result = malloc(2048);
+	memset(result, '\0', 2048);
 
 	char line[2048];
 	while( fgets(line, sizeof(line), cmd) ) {
@@ -158,7 +160,7 @@ char* add_file_to_archive(char *filename) {
 		e[0] = '\0';
 	}
 
-	return result;
+	return strlen(result) > 0 ? result : NULL;
 
 }
 
@@ -179,6 +181,10 @@ void add_parts_to_archive(struct message_line *message) {
 			filename[e-s] = '\0';
 
 			char *hash = add_file_to_archive(filename);
+			if( hash == NULL ) {
+				fprintf(stderr, "Failed to add file to archive: %s\n", filename);
+				exit(EX_IOERR);
+			}
 			sprintf(curr->s, "{{ARCHIVE((%s))}}\r\n", hash);
 			free(hash);
 		}
@@ -190,12 +196,12 @@ void add_parts_to_archive(struct message_line *message) {
 /**
  * Caller must free result
  */
-char* save_message(struct message_line *start, char *filename) {
+void save_message(struct message_line *start, char *filename) {
 
 	FILE *fp = fopen(filename, "w");
 	if( fp == NULL ) {
 		fprintf(stderr, "Failed to create file: %s\n", filename);
-		return NULL;
+		exit(EX_IOERR);
 	}
 
 	struct message_line *curr = start;
@@ -205,8 +211,6 @@ char* save_message(struct message_line *start, char *filename) {
 	}
 
 	fclose(fp);
-
-	return filename;
 }
 
 /**
@@ -299,16 +303,13 @@ void get_message(int argc, char *argv[]) {
 	if( message != NULL ) {
 		get_parts_from_archive(message);
 
-		char *tmp_filename = malloc(1024);
+		char tmp_filename[1024];
 		sprintf(tmp_filename, "%s/archive-message", output_dir);
 
-		char *filename = save_message(message, tmp_filename);
-		if( filename != NULL ) {
-			char *hash = add_file_to_archive(filename);
-			printf("COPIED: %s\n", hash);
-			free(hash);
-		}
-		free(filename);
+		save_message(message, tmp_filename);
+		char *hash = add_file_to_archive(tmp_filename);
+		printf("COPIED: %s\n", hash);
+		free(hash);
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
 	}
@@ -355,16 +356,13 @@ void add_message(int argc, char *argv[]) {
 	if( message != NULL ) {
 		add_parts_to_archive(message);
 
-		char *tmp_filename = malloc(1024);
+		char tmp_filename[1024];
 		sprintf(tmp_filename, "%s/archive-message", output_dir);
 
-		char *filename = save_message(message, tmp_filename);
-		if( filename != NULL ) {
-			char *hash = add_file_to_archive(filename);
-			printf("ADDED: %s\n", hash);
-			free(hash);
-		}
-		free(filename);
+		save_message(message, tmp_filename);
+		char *hash = add_file_to_archive(tmp_filename);
+		printf("ADDED: %s\n", hash);
+		free(hash);
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
 	}
@@ -378,6 +376,7 @@ int main(int argc, char *argv[]) {
 
 	if( argc < 3 ) {
 		fprintf(stderr, "Missing arguments\n");
+		usage();
 		exit(EX_USAGE);
 	}
 
@@ -389,6 +388,7 @@ int main(int argc, char *argv[]) {
 		get_message(argc, argv);
 	} else {
 		fprintf(stderr, "Unknown command: %s\n", cmd);
+		usage();
 		exit(EX_USAGE);
 	}
 
