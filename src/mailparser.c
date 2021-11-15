@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 
 #include "../lib/sntools/src/lib/linked_items.c"
+#include "./lib/message.c"
 #include "../lib/jouni-malinen/base64.c"
 #include "./lib/qp.c"
 
@@ -109,7 +110,7 @@ void qp_decode_save(struct message_line *start, struct message_line *end, FILE *
 	while( curr != NULL && curr != end ) {
 
 		if( in_header == 1 ) {
-			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
+			if( is_empty_line(curr->s) ) {
 				in_header = 0;
 			}
 		} else {
@@ -154,7 +155,7 @@ void base64_decode_save(struct message_line *start, struct message_line *end, FI
 	while( curr != NULL && curr != end ) {
 
 		if( in_header == 1 ) {
-			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
+			if( is_empty_line(curr->s) ) {
 				in_header = 0;
 			}
 		} else {
@@ -184,7 +185,7 @@ void undecoded_save(struct message_line *start, struct message_line *end, FILE *
 			if( show_result_filename_only != 1 )
 				printf("%i PART WITHOUT ENCODING> %s", curr->line_number, curr->s);
 
-			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
+			if( is_empty_line(curr->s) ) {
 				in_header = 0;
 			}
 		} else {
@@ -238,7 +239,7 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 	while( curr != NULL && curr != end && content_start == NULL) {
 
 		if( in_header == 1 ) {
-			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
+			if( is_empty_line(curr->s) ) {
 				in_header = 0;
 			}
 		} else {
@@ -250,8 +251,10 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 
 	if( content_start != NULL ) {
 
-		char reference[MAX_LINE_LENGTH + 100];
-		sprintf(content_start->s, "{{REF((%s))}}\r\n", fd->filename);
+		char *ref_format = "{{REF((%s))}}\r\n";
+		char reference[strlen(ref_format)+strlen(fd->filename)];
+		sprintf(reference, ref_format, fd->filename);
+		message_line_set_s(content_start, reference);
 
 		struct message_line *start_free = (struct message_line*)content_start->list.next;
 		struct message_line *end_free = (struct message_line*)end->list.prev;
@@ -260,7 +263,7 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 		content_start->list.next = (void*)end;
 		end->list.prev = (void*)content_start;
 
-		linked_item_free(start_free, NULL);
+		message_line_free(start_free);
 	}
 }
 
@@ -401,13 +404,12 @@ int main(int argc, char *argv[]) {
 	while(fgets(line, sizeof(line), fp)) {
 
 		if( message == NULL ) {
-			message = linked_item_create(NULL, sizeof(struct message_line));
+			message = message_line_create(NULL, line);
 			curr_line = message;
 		} else {
-			curr_line = linked_item_create(curr_line, sizeof(struct message_line));
+			curr_line = message_line_create(curr_line, line);
 		}
 
-		strcpy(curr_line->s, line);
 		curr_line->line_number = ++line_number;
 	}
 

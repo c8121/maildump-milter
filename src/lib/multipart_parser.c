@@ -1,12 +1,29 @@
+/*
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-#define MAX_LINE_LENGTH 1024
+/*
+ * Author: christian c8121 de
+ */
 
-struct message_line {
-	struct linked_item list;
-	char s[MAX_LINE_LENGTH];
-	int line_number;
-};
-
+int is_empty_line(char *s) {
+	if( s[0] == '\r' || s[0] == '\n' || s[0] == '\0' ) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
 
 /**
  * 
@@ -147,13 +164,13 @@ void find_parts(struct message_line *message, void (*handle_part_function)(void 
 				printf("%i HEADER> %s", curr->line_number, curr->s);
 
 			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
-				
+
 				if( verbose > 0 )
 					printf("%i END-OF-HEADERS\n\n", curr->line_number);
 				reading_headers = 0;
-				
+
 			} else {
-				
+
 				char *p = strstr(curr->s, "boundary");
 				if( p != NULL ) {
 					p = strstr(p, "=");
@@ -169,7 +186,7 @@ void find_parts(struct message_line *message, void (*handle_part_function)(void 
 							}
 							strncpy(curr_boundary, p, strlen(p));
 							curr_boundary[e-p+1] = '\0';
-							
+
 							if( verbose > 0 )
 								printf("%i *BOUNDARY> %s\n", curr->line_number, curr_boundary);
 						}
@@ -183,10 +200,10 @@ void find_parts(struct message_line *message, void (*handle_part_function)(void 
 				if( p != NULL ) {
 
 					if( part_begin != NULL ) {
-						
+
 						if( verbose > 0 )
 							printf("%i BEGIN WITH> (%i) %s", curr->line_number, part_begin->line_number, part_begin->s);
-						
+
 						find_parts(part_begin, handle_part_function, verbose);
 					}
 

@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 
 #include "../lib/sntools/src/lib/linked_items.c"
+#include "./lib/message.c"
 #include "../lib/jouni-malinen/base64.c"
 #include "./lib/qp.c"
 
@@ -48,31 +49,7 @@ void usage() {
  */
 void replace_base64_content(struct message_line *ref, FILE *fp) {
 
-	struct message_line *append = NULL;
-
-	char chunk[MAX_LINE_LENGTH];
-	size_t r;
-	while(r = fread(chunk, 1, 54, fp)) {
-
-		size_t enc_len;
-		char *out = base64_encode(chunk, r, &enc_len);
-
-		char *p = out;
-		while( p < out+enc_len ) {
-			append = append == NULL ? ref : linked_item_create(append, sizeof(struct message_line));
-			char *e = strchr(p, '\n');
-			if( e != NULL ) {
-				strncpy(append->s, p, e-p+1);
-				append->s[e-p+1] = '\0';
-			} else {
-				strcpy(append->s, p);
-			}
-
-			p = e+1;
-		}
-
-		free(out);
-	}
+	message_line_set_s(ref, "TODO: BASE64 ENCODE FILE\r\n");
 }
 
 /**
@@ -80,32 +57,7 @@ void replace_base64_content(struct message_line *ref, FILE *fp) {
  */
 void replace_qp_content(struct message_line *ref, FILE *fp) {
 
-	struct message_line *append = NULL;
-
-	char chunk[MAX_LINE_LENGTH];
-	size_t r;
-	while(r = fread(chunk, 1, 1024, fp)) {
-
-		char *out = qp_encode(chunk, r);
-		size_t enc_len = strlen(out);
-
-		char *p = out;
-		while( p < out+enc_len ) {
-			append = append == NULL ? ref : linked_item_create(append, sizeof(struct message_line));
-			char *e = strchr(p, '\n');
-			if( e != NULL ) {
-				strncpy(append->s, p, e-p+2);
-				append->s[e-p+1] = '\0';
-				p = e+1;
-			} else {
-				strcpy(append->s, p);
-				break;
-			}
-		}
-
-		free(out);
-
-	}
+	message_line_set_s(ref, "TODO: QP ENCODE FILE\r\n");
 }
 
 /**
@@ -118,8 +70,8 @@ void replace_unencoded_content(struct message_line *ref, FILE *fp) {
 	char line[MAX_LINE_LENGTH];
 	while(fgets(line, sizeof(line), fp)) {
 
-		append = append == NULL ? ref : linked_item_create(append, sizeof(struct message_line));
-		strcpy(append->s, line);
+		append = append == NULL ? ref : message_line_create(append, NULL);
+		message_line_set_s(append, line);
 
 	}
 }
@@ -235,13 +187,12 @@ int main(int argc, char *argv[]) {
 	while(fgets(line, sizeof(line), fp)) {
 
 		if( message == NULL ) {
-			message = linked_item_create(NULL, sizeof(struct message_line));
+			message = message_line_create(NULL, line);
 			curr_line = message;
 		} else {
-			curr_line = linked_item_create(curr_line, sizeof(struct message_line));
+			curr_line = message_line_create(curr_line, line);
 		}
 
-		strcpy(curr_line->s, line);
 		curr_line->line_number = ++line_number;
 	}
 

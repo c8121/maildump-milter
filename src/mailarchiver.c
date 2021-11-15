@@ -31,18 +31,14 @@
 #include <sys/stat.h>
 
 #include "../lib/sntools/src/lib/linked_items.c"
+#include "./lib/message.c"
 
 #define MAX_LINE_LENGTH 1024
 
 char *parser_program = "./bin/mailparser -f";
-char *assembler_program = "./bin/mailparser -f";
+char *assembler_program = "./bin/mailassembler";
 char *add_to_archive_program = "./bin/archive add";
 char *copy_from_archive_program = "./bin/archive copy";
-
-struct message_line {
-	struct linked_item list;
-	char s[MAX_LINE_LENGTH];
-};
 
 char *output_dir = "/tmp";
 
@@ -103,7 +99,7 @@ char* get_file_from_archive(char *hash, char *dest_filename) {
 void get_parts_from_archive(struct message_line *message) {
 
 	int file_num = 0;
-	
+
 	struct message_line *curr = message;
 	while( curr != NULL ) {
 
@@ -113,12 +109,15 @@ void get_parts_from_archive(struct message_line *message) {
 			char hash[e-s+1];
 			strncpy(hash, s, e-s);
 			hash[e-s] = '\0';
-			
+
 			char dest_filename[1024];
 			sprintf(dest_filename, "/tmp/message-part.%i", ++file_num);
 
 			char *filename = get_file_from_archive(hash, dest_filename);
-			sprintf(curr->s, "{{REF((%s))}}\r\n", filename);
+			char *ref_format = "{{REF((%s))}}\r\n";
+			char reference[strlen(ref_format)+strlen(filename)];
+			sprintf(reference, ref_format, filename);
+			message_line_set_s(curr, reference);
 			free(filename);
 		}
 
@@ -185,7 +184,11 @@ void add_parts_to_archive(struct message_line *message) {
 				fprintf(stderr, "Failed to add file to archive: %s\n", filename);
 				exit(EX_IOERR);
 			}
-			sprintf(curr->s, "{{ARCHIVE((%s))}}\r\n", hash);
+
+			char *ref_format = "{{ARCHIVE((%s))}}\r\n";
+			char reference[strlen(ref_format)+strlen(hash)];
+			sprintf(reference, ref_format, hash);
+			message_line_set_s(curr, reference);
 			free(hash);
 		}
 
@@ -251,6 +254,35 @@ char* parse_message(char *filename) {
 }
 
 /**
+ * Calls mailassembler program
+ * 
+ * Caller must free result
+ */
+void assemble_message(char *filename, char *out_filename) {
+
+	char command[2048];
+	sprintf(command, "%s \"%s\" \"%s\"", assembler_program, filename, out_filename);
+	printf("EXEC: %s\n", command);
+
+	FILE *cmd = popen(command, "r");
+	if( cmd == NULL ) {
+		fprintf(stderr, "Failed to execute: %s\n", command);
+		return;
+	}
+
+	char line[2048];
+	while( fgets(line, sizeof(line), cmd) ) {
+		//strcpy(result, line);
+	}
+
+	if( feof(cmd) ) {
+		pclose(cmd);
+	} else {
+		fprintf(stderr, "Broken pipe: %s\n", command);
+	}
+}
+
+/**
  * 
  */
 void get_message(int argc, char *argv[]) {
@@ -274,8 +306,10 @@ void get_message(int argc, char *argv[]) {
 		exit(EX_IOERR);
 	}
 
+	char tmp_filename[1024];
+	sprintf(tmp_filename, "%s/archive-message", output_dir);
 
-	char *message_file = get_file_from_archive(hash, destination);
+	char *message_file = get_file_from_archive(hash, tmp_filename);
 
 	FILE *fp = fopen(message_file, "r");
 	if( fp == NULL ) {
@@ -286,16 +320,17 @@ void get_message(int argc, char *argv[]) {
 	struct message_line *message = NULL;
 	struct message_line *curr_line = NULL; 
 	char line[MAX_LINE_LENGTH];
+	int line_number = 0;
 	while(fgets(line, sizeof(line), fp)) {
 
 		if( message == NULL ) {
-			message = linked_item_create(NULL, sizeof(struct message_line));
+			message = message_line_create(NULL, line);
 			curr_line = message;
 		} else {
-			curr_line = linked_item_create(curr_line, sizeof(struct message_line));
+			curr_line = message_line_create(curr_line, line);
 		}
 
-		strcpy(curr_line->s, line);
+		curr_line->line_number = ++line_number;
 	}
 
 	fclose(fp);
@@ -303,13 +338,10 @@ void get_message(int argc, char *argv[]) {
 	if( message != NULL ) {
 		get_parts_from_archive(message);
 
-		char tmp_filename[1024];
-		sprintf(tmp_filename, "%s/archive-message", output_dir);
-
 		save_message(message, tmp_filename);
-		char *hash = add_file_to_archive(tmp_filename);
-		printf("COPIED: %s\n", hash);
-		free(hash);
+
+		assemble_message(tmp_filename, destination);
+
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
 	}
@@ -339,16 +371,17 @@ void add_message(int argc, char *argv[]) {
 	struct message_line *message = NULL;
 	struct message_line *curr_line = NULL; 
 	char line[MAX_LINE_LENGTH];
+	int line_number = 0;
 	while(fgets(line, sizeof(line), fp)) {
 
 		if( message == NULL ) {
-			message = linked_item_create(NULL, sizeof(struct message_line));
+			message = message_line_create(NULL, line);
 			curr_line = message;
 		} else {
-			curr_line = linked_item_create(curr_line, sizeof(struct message_line));
+			curr_line = message_line_create(curr_line, line);
 		}
 
-		strcpy(curr_line->s, line);
+		curr_line->line_number = ++line_number;
 	}
 
 	fclose(fp);

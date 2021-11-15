@@ -34,9 +34,10 @@ int __hexval(int c) {
 char* qp_decode(const char *body)
 {
 	char *out = malloc(strlen(body)+1);
+	//printf("QP BODY SIZE: %li\n", strlen(body));
 
-	int p = 0;
-	int o = 0;
+	size_t p = 0;
+	size_t o = 0;
 	while( body[p] != '\0' && p <= strlen(body) ) {
 
 		if (body[p] != '=')
@@ -64,9 +65,9 @@ char* qp_encode(const unsigned char *body, size_t len) {
 	size_t out_len = len * 1.2 + 6;
 	char *out = malloc(out_len);
 	
-	int li = 0;
-	int o = 0;
-	for( int i=0 ; i<len ; i++ ) {
+	size_t li = 0;
+	size_t o = 0;
+	for( size_t i=0 ; i<len ; i++ ) {
 		
 		if( o >= out_len - 3 ) {
 			out_len += 100;
