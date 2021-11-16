@@ -136,6 +136,8 @@ void base64_decode_save(struct message_line *start, struct message_line *end, FI
 	int in_header = 1;
 	struct base64_decoding_buffer *buf = malloc(sizeof(struct base64_decoding_buffer));
 	buf->s = NULL;
+	buf->len = 0;
+	buf->encoded = NULL;
 
 	struct message_line *curr = start;
 	while( curr != NULL && curr != end ) {
@@ -151,10 +153,12 @@ void base64_decode_save(struct message_line *start, struct message_line *end, FI
 		curr = (struct message_line*)curr->list.next;
 	}
 
-	fwrite(buf->s, 1, strlen(buf->s), fp);
+	fwrite(buf->s, 1, buf->len, fp);
 
 	if( buf->s != NULL)
 		free(buf->s);
+	if( buf->encoded != NULL)
+		free(buf->encoded);
 	free(buf);
 }
 

@@ -17,7 +17,9 @@ struct base64_encoding_buffer {
 };
 
 struct base64_decoding_buffer {
-	char *s;
+	unsigned char *s;
+	size_t len;
+	char *encoded; //Data which has not been encoded so far (input length was not devidable by 4 or not padded) 
 };
 
 /**
@@ -112,54 +114,87 @@ unsigned int __base64_val(char c)
  */
 void base64_decode_chunk(struct base64_decoding_buffer *buf, unsigned char *s, size_t len)
 {
-	unsigned char *out = malloc(len);
+	unsigned char *in;
+
+	size_t bi;
+	if( buf->encoded == NULL ) {
+		buf->encoded = malloc(len  + 1);
+		bi = 0;
+	} else {
+		bi = strlen(buf->encoded);
+		unsigned char *tmp = malloc(bi + len + 1);
+		strcpy(tmp, buf->encoded);
+		free(buf->encoded);
+		buf->encoded = tmp;
+	}
+
+	for( size_t i=0 ; i < len ; i++ ) {
+		//Copy valid chars and padding only
+		if (s[i]=='=' || (__base64_val(s[i])) < 64) {
+			buf->encoded[bi++] = s[i];
+		}
+	}
+	buf->encoded[bi] = '\0';
+
+	size_t enc_len = strlen(buf->encoded);
+	if( (enc_len % 4 != 0) && buf->encoded[enc_len-1] != '=' ) {
+		return;
+	}
+
+	unsigned char *out = malloc(enc_len);
 
 	unsigned int c, v;
 	int have_bits;
 
-	unsigned char *p = s;
+	unsigned char *p = buf->encoded;
 	unsigned char *o = out;
 
 	for (have_bits = 0; *p && *p != '='; p++) {
-		if ((v = __base64_val(*p)) < 64) {
-			switch (have_bits) {
-			case 0: 
-				c = v; 
-				have_bits = 6; 
-				break;
+		
+		v = __base64_val(*p);
 
-			case 6: 
-				*o++ = (c << 2) | (v >> 4); 
-				c = v & 0x0F; 
-				have_bits = 4; 
-				break;
+		switch (have_bits) {
+		case 0: 
+			c = v; 
+			have_bits = 6; 
+			break;
 
-			case 4: 
-				*o++ = (c << 4) | (v >> 2); 
-				c = v & 0x03; 
-				have_bits = 2; 
-				break;
+		case 6: 
+			*o++ = (c << 2) | (v >> 4); 
+			c = v & 0x0F; 
+			have_bits = 4; 
+			break;
 
-			case 2: 
-				*o++ = (c << 6) | v; 
-				c = 0; 
-				have_bits = 0; 
-				break;
-			}
+		case 4: 
+			*o++ = (c << 4) | (v >> 2); 
+			c = v & 0x03; 
+			have_bits = 2; 
+			break;
+
+		case 2: 
+			*o++ = (c << 6) | v; 
+			c = 0; 
+			have_bits = 0; 
+			break;
 		}
-	}
-	*o++ = '\0';
 
-	if( buf->s == NULL ) {
-		buf->s = malloc(strlen(out)+1);
-		strcpy(buf->s, out);
-	} else {
-		unsigned char tmp[strlen(buf->s)+strlen(out)+1];
-		strcpy(tmp, buf->s);
-		strcat(tmp, out);
-		free(buf->s);
-		buf->s = malloc(sizeof(tmp));
-		strcpy(buf->s, tmp);
 	}
+	
+	size_t out_len = o - out;
+	if( buf->s == NULL ) {
+		buf->s = malloc(out_len);
+		buf->len = out_len;
+		memcpy(buf->s, out, out_len);
+	} else {
+		unsigned char *tmp = malloc(buf->len + out_len);
+		memcpy(tmp, buf->s, buf->len);
+		memcpy(tmp + buf->len, out, out_len);
+		free(buf->s);
+		buf->s = tmp;
+		buf->len += out_len;
+	}
+	
+	free(buf->encoded);
+	buf->encoded = NULL;
 }
 
