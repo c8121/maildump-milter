@@ -70,12 +70,11 @@ void qp_encode_chunk(struct qp_encoding_buffer *buf, unsigned char *s) {
 		buf->s = malloc(strlen(out)+1);
 		strcpy(buf->s, out);
 	} else {
-		unsigned char tmp[strlen(buf->s)+strlen(out)+1];
+		unsigned char *tmp = malloc(strlen(buf->s)+strlen(out)+1);
 		strcpy(tmp, buf->s);
 		strcat(tmp, out);
 		free(buf->s);
-		buf->s = malloc(sizeof(tmp));
-		strcpy(buf->s, tmp);
+		buf->s = tmp;
 	}
 }
 
@@ -123,12 +122,11 @@ void qp_decode_chunk(struct qp_decoding_buffer *buf, unsigned char *s)
 		buf->s = malloc(strlen(out)+1);
 		strcpy(buf->s, out);
 	} else {
-		unsigned char tmp[strlen(buf->s)+strlen(out)+1];
+		unsigned char *tmp = malloc(strlen(buf->s)+strlen(out)+1);
 		strcpy(tmp, buf->s);
 		strcat(tmp, out);
 		free(buf->s);
-		buf->s = malloc(sizeof(tmp));
-		strcpy(buf->s, tmp);
+		buf->s = tmp;
 	}
 }
 
