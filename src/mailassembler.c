@@ -34,7 +34,7 @@
 
 #include "../lib/sntools/src/lib/linked_items.c"
 #include "./lib/message.c"
-#include "../lib/jouni-malinen/base64.c"
+#include "./lib/base64.c"
 #include "./lib/qp.c"
 
 #include "./lib/multipart_parser.c"
@@ -49,7 +49,22 @@ void usage() {
  */
 void replace_base64_content(struct message_line *ref, FILE *fp) {
 
-	message_line_set_s(ref, "TODO: BASE64 ENCODE FILE\r\n");
+	struct base64_encoding_buffer *buf = malloc(sizeof(struct base64_encoding_buffer));
+	buf->s = NULL;
+	buf->max_line_length = 75;
+	buf->line_index = 0;
+
+	int chunk_size = 4002; //must be devidable by 3
+	unsigned char chunk[chunk_size];
+	int r;
+	while(r = fread(chunk, 1, chunk_size, fp)) {
+
+		base64_encode_chunk(buf, chunk, r);
+	}
+
+	message_line_set_s(ref, buf->s);
+	free(buf->s);
+	free(buf);
 }
 
 /**
@@ -57,7 +72,20 @@ void replace_base64_content(struct message_line *ref, FILE *fp) {
  */
 void replace_qp_content(struct message_line *ref, FILE *fp) {
 
-	message_line_set_s(ref, "TODO: QP ENCODE FILE\r\n");
+	struct qp_encoding_buffer *buf = malloc(sizeof(struct qp_encoding_buffer));
+	buf->s = NULL;
+	buf->max_line_length = 75;
+	buf->line_index = 0;
+
+	unsigned char line[4096];
+	while(fgets(line, sizeof(line), fp)) {
+
+		qp_encode_chunk(buf, line);
+	}
+
+	message_line_set_s(ref, buf->s);
+	free(buf->s);
+	free(buf);
 }
 
 /**

@@ -32,7 +32,7 @@
 
 #include "../lib/sntools/src/lib/linked_items.c"
 #include "./lib/message.c"
-#include "../lib/jouni-malinen/base64.c"
+#include "./lib/base64.c"
 #include "./lib/qp.c"
 
 #include "./lib/multipart_parser.c"
@@ -103,8 +103,8 @@ char* last_non_whitespace(char *s) {
 void qp_decode_save(struct message_line *start, struct message_line *end, FILE *fp) {
 
 	int in_header = 1;
-	struct message_line *content_start = NULL;
-	int out_size = 0;
+	struct qp_decoding_buffer *buf = malloc(sizeof(struct qp_decoding_buffer));
+	buf->s = NULL;
 
 	struct message_line *curr = start;
 	while( curr != NULL && curr != end ) {
@@ -114,33 +114,17 @@ void qp_decode_save(struct message_line *start, struct message_line *end, FILE *
 				in_header = 0;
 			}
 		} else {
-			if( content_start == NULL)
-				content_start = curr;
-			out_size += strlen(curr->s);
+			qp_decode_chunk(buf, curr->s);
 		}
 
 		curr = (struct message_line*)curr->list.next;
 	}
 
-	if( content_start != NULL ) {
-		char *out = malloc(out_size + 1);
-		int p=0;
-		curr = content_start;
-		while( curr != NULL && curr != end ) {
+	fwrite(buf->s, 1, strlen(buf->s), fp);
 
-			for( int i=0 ; i < strlen(curr->s) ; i++ )
-				out[p++] = curr->s[i];
-
-			curr = (struct message_line*)curr->list.next;
-		}
-		out[p++] = '\0';
-
-		char *decoded = qp_decode(out);
-		fwrite(decoded, 1, strlen(decoded), fp);
-
-		free(decoded);
-		free(out);
-	}
+	if( buf->s != NULL)
+		free(buf->s);
+	free(buf);
 
 }
 
@@ -150,6 +134,8 @@ void qp_decode_save(struct message_line *start, struct message_line *end, FILE *
 void base64_decode_save(struct message_line *start, struct message_line *end, FILE *fp) {
 
 	int in_header = 1;
+	struct base64_decoding_buffer *buf = malloc(sizeof(struct base64_decoding_buffer));
+	buf->s = NULL;
 
 	struct message_line *curr = start;
 	while( curr != NULL && curr != end ) {
@@ -159,15 +145,17 @@ void base64_decode_save(struct message_line *start, struct message_line *end, FI
 				in_header = 0;
 			}
 		} else {
-
-			size_t out_len = 0;
-			char *out = base64_decode(curr->s, strlen(curr->s), &out_len);
-			fwrite(out, 1, out_len, fp);
-			free(out);
+			base64_decode_chunk(buf, curr->s, strlen(curr->s));
 		}
 
 		curr = (struct message_line*)curr->list.next;
 	}
+
+	fwrite(buf->s, 1, strlen(buf->s), fp);
+
+	if( buf->s != NULL)
+		free(buf->s);
+	free(buf);
 }
 
 /**
