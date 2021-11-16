@@ -194,17 +194,16 @@ void undecoded_save(struct message_line *start, struct message_line *end, FILE *
  */
 void save_part(struct message_line *start, struct message_line *end, struct file_description *fd) {
 
-	if( show_result_filename_only != 1 )
-		printf("    Saving part to: %s\n", fd->filename);
-
 	FILE *fp = fopen(fd->filename, "w");
 	if( fp == NULL ) {
 		fprintf(stderr, "Failed to create file: %s\n", fd->filename);
 		return;
 	}
 
-	if( show_result_filename_only != 1 )
+	if( show_result_filename_only != 1 ) {
+		printf("    Saving part to: %s\n", fd->filename);
 		printf("    Encoding: %s\n", fd->encoding);
+	}
 
 	if( strcasestr(fd->encoding, "quoted-printable") != NULL ) {
 		qp_decode_save(start, end, fp);

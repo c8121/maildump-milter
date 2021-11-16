@@ -39,6 +39,10 @@
 
 #include "./lib/multipart_parser.c"
 
+
+int show_result_filename_only = 0;
+
+
 void usage() {
 	printf("Usage: mailassembler <parsed file> <output file>\n");
 }
@@ -121,6 +125,11 @@ void replace_content(struct message_line *ref, char *encoding, char *filename) {
 		exit(EX_IOERR);
 	}
 
+	if( show_result_filename_only != 1 ) {
+		printf("    Loading part from: %s\n", filename);
+		printf("    Encoding: %s\n", encoding);
+	}
+
 	if( strcasestr(encoding, "quoted-printable") != NULL ) {
 		replace_qp_content(ref, fp);
 	} else if( strcasestr(encoding, "base64") != NULL ) {
@@ -176,6 +185,11 @@ void save_message(struct message_line *start, char *filename) {
 	}
 
 	fclose(fp);
+
+	if( show_result_filename_only != 1 )
+		printf("Saved parsed message: %s\n", filename);
+	else
+		printf("%s\n", filename);
 }
 
 /**
