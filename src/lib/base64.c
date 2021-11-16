@@ -29,7 +29,9 @@ void base64_encode_chunk(struct base64_encoding_buffer *buf, unsigned char *s, s
 
 	if( buf->s != NULL ) {
 		size_t last = strlen(buf->s)-1;
-		if( buf->s[last] == '\n' || buf->s[last] == '=' ) {
+		while( buf->s[last] == '\r' || buf->s[last] == '\n' )
+			last--;
+		if( buf->s[last] == '=' ) {
 			fprintf(stderr, "Cannot append chunk, buffer was padded (please take care to choose a length devidable by 3 when appending chunks; only last chunk can have different size\n)");
 			exit(EX_IOERR);
 		}
@@ -82,12 +84,11 @@ void base64_encode_chunk(struct base64_encoding_buffer *buf, unsigned char *s, s
 		buf->s = malloc(strlen(out)+1);
 		strcpy(buf->s, out);
 	} else {
-		unsigned char tmp[strlen(buf->s)+strlen(out)+1];
+		unsigned char *tmp = malloc(strlen(buf->s)+strlen(out)+1);
 		strcpy(tmp, buf->s);
 		strcat(tmp, out);
 		free(buf->s);
-		buf->s = malloc(sizeof(tmp));
-		strcpy(buf->s, tmp);
+		buf->s = tmp;
 	}
 }
 
