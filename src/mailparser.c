@@ -50,6 +50,13 @@ int show_result_filename_only = 0;
 int last_file_num = 0;
 
 /**
+ * 
+ */
+void usage() {
+	printf("Usage: mailparser [-f] <file>\n");
+}
+
+/**
  * Read command line arguments and configure application
  */
 void configure(int argc, char *argv[]) {
@@ -372,6 +379,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc - optind +1 < 2) {
 		fprintf(stderr, "Missing arguments\n");
+		usage();
 		exit(EX_USAGE);
 	}
 

@@ -42,9 +42,29 @@
 
 int show_result_filename_only = 0;
 
-
+/**
+ * 
+ */
 void usage() {
-	printf("Usage: mailassembler <parsed file> <output file>\n");
+	printf("Usage: mailassembler [-f] <parsed file> <output file>\n");
+}
+
+/**
+ * Read command line arguments and configure application
+ */
+void configure(int argc, char *argv[]) {
+
+	const char *options = "f";
+	int c;
+
+	while ((c = getopt(argc, argv, options)) != -1) {
+		switch(c) {
+
+		case 'f':
+			show_result_filename_only = 1;
+			break;
+		}
+	}
 }
 
 
@@ -197,20 +217,22 @@ void save_message(struct message_line *start, char *filename) {
  */
 int main(int argc, char *argv[]) {
 
-	if (argc < 3) {
+	configure(argc, argv);
+	
+	if (argc - optind +1 < 3) {
 		fprintf(stderr, "Missing arguments\n");
 		usage();
 		exit(EX_USAGE);
 	}
 
-	char *message_file = argv[1];
+	char *message_file = argv[optind];
 	struct stat file_stat;
 	if( stat(message_file, &file_stat) != 0 ) {
 		fprintf(stderr, "File not found: %s\n", message_file);
 		exit(EX_IOERR);
 	}
 
-	char *destination_file = argv[2];
+	char *destination_file = argv[optind + 1];
 	if( stat(destination_file, &file_stat) == 0 ) {
 		fprintf(stderr, "Destination file already exists: %s\n", destination_file);
 		exit(EX_IOERR);
@@ -241,7 +263,7 @@ int main(int argc, char *argv[]) {
 	fclose(fp);
 
 	if( message != NULL ) {
-		find_parts(message, &find_file_references, 1);
+		find_parts(message, &find_file_references, show_result_filename_only == 1 ? 0 : 1);
 		save_message(message, destination_file);
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
