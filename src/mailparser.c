@@ -162,6 +162,7 @@ void base64_decode_save(struct message_line *start, struct message_line *end, FI
 	buf->s = NULL;
 	buf->len = 0;
 	buf->encoded = NULL;
+	buf->encoded_len = 0;
 
 	struct message_line *curr = start;
 	while( curr != NULL && curr != end ) {
@@ -171,12 +172,13 @@ void base64_decode_save(struct message_line *start, struct message_line *end, FI
 				in_header = 0;
 			}
 		} else {
-			base64_decode_chunk(buf, curr->s, strlen(curr->s));
+			base64_append_chunk(buf, curr->s, strlen(curr->s));
 		}
 
 		curr = (struct message_line*)curr->list.next;
 	}
 
+	base64_decode_chunk(buf, NULL, 0);
 	fwrite(buf->s, 1, buf->len, fp);
 
 	if( buf->s != NULL)
@@ -277,7 +279,7 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 
 		content_start->list.next = (void*)end;
 		end->list.prev = (void*)content_start;
-
+		
 		message_line_free(start_free);
 	}
 }
