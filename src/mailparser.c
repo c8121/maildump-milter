@@ -83,7 +83,7 @@ void configure(int argc, char *argv[]) {
 				strncpy(output_dir, optarg, p-optarg);
 			}
 			break;
-			
+
 		case 'p':
 			part_output_filename_prefix = optarg;
 			break;
@@ -274,13 +274,15 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 		message_line_set_s(content_start, reference);
 
 		struct message_line *start_free = (struct message_line*)content_start->list.next;
-		struct message_line *end_free = (struct message_line*)end->list.prev;
-		end_free->list.next = NULL;
+		if( start_free != end ) {	
+			struct message_line *end_free = (struct message_line*)end->list.prev;
+			end_free->list.next = NULL;
+			
+			content_start->list.next = (void*)end;
+			end->list.prev = (void*)content_start;
 
-		content_start->list.next = (void*)end;
-		end->list.prev = (void*)content_start;
-		
-		message_line_free(start_free);
+			message_line_free(start_free);
+		}
 	}
 }
 

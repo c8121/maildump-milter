@@ -195,6 +195,7 @@ void find_parts(struct message_line *message, void (*handle_part_function)(void 
 		} else {
 
 			if( curr_boundary[0] != '\0' ) {
+				
 				char *p = strstr(curr->s+2, curr_boundary);
 				if( p != NULL ) {
 
