@@ -28,6 +28,10 @@ To forward message files to a SMTP-Server
     
 ## Setup
 
+Requirements
+
+    apt install libbsd-dev
+
 ### maildump
 
 To dump all mails from Postfix, a postfix milter must be set up.

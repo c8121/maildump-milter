@@ -41,12 +41,13 @@
 
 
 int show_result_filename_only = 0;
+int delete_input_files = 0;
 
 /**
  * 
  */
 void usage() {
-	printf("Usage: mailassembler [-f] <parsed file> <output file>\n");
+	printf("Usage: mailassembler [-f] [-d] <parsed file> <output file>\n");
 }
 
 /**
@@ -54,7 +55,7 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "f";
+	const char *options = "fd";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
@@ -62,6 +63,10 @@ void configure(int argc, char *argv[]) {
 
 		case 'f':
 			show_result_filename_only = 1;
+			break;
+
+		case 'd':
+			delete_input_files = 1;
 			break;
 		}
 	}
@@ -163,6 +168,12 @@ void replace_content(struct message_line *ref, char *encoding, char *filename) {
 	}
 
 	fclose(fp);
+	
+	if( delete_input_files == 1 ) {
+		if( show_result_filename_only != 1 )
+			printf("Delete %s\n", filename);
+		unlink(filename);
+	}
 }
 
 
@@ -182,7 +193,7 @@ void find_file_references(void *start, void *end) {
 			char filename[e-s+1];
 			strncpy(filename, s, e-s);
 			filename[e-s] = '\0';
-			
+
 			replace_content(curr, encoding, filename);
 		}
 
@@ -268,6 +279,13 @@ int main(int argc, char *argv[]) {
 	if( message != NULL ) {
 		find_parts(message, &find_file_references, show_result_filename_only == 1 ? 0 : 1);
 		save_message(message, destination_file);
+		
+		if( delete_input_files == 1 ) {
+			if( show_result_filename_only != 1 )
+				printf("Delete %s\n", message_file);
+			unlink(message_file);
+		}
+		
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
 	}

@@ -30,13 +30,16 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
+#include <bsd/stdlib.h> //required by file_util
+
+#include "./lib/file_util.c"
 #include "../lib/sntools/src/lib/linked_items.c"
 #include "./lib/message.c"
 
 #define MAX_LINE_LENGTH 1024
 
 char *parser_program = "./bin/mailparser -f";
-char *assembler_program = "./bin/mailassembler -f";
+char *assembler_program = "./bin/mailassembler -f -d";
 char *add_to_archive_program = "./bin/archive add";
 char *copy_from_archive_program = "./bin/archive copy";
 
@@ -58,7 +61,7 @@ void usage() {
 /**
  * Caller must free result
  */
-char* get_file_from_archive(char *hash, char *dest_filename) {
+void get_file_from_archive(char *hash, char *dest_filename) {
 
 	char command[2048];
 	sprintf(command, "%s %s \"%s\"", copy_from_archive_program, hash, dest_filename);
@@ -66,7 +69,7 @@ char* get_file_from_archive(char *hash, char *dest_filename) {
 	FILE *cmd = popen(command, "r");
 	if( cmd == NULL ) {
 		fprintf(stderr, "Failed to execute: %s\n", command);
-		return NULL;
+		exit(EX_IOERR);
 	}
 
 	char *result = malloc(2048);
@@ -74,7 +77,7 @@ char* get_file_from_archive(char *hash, char *dest_filename) {
 	char line[2048];
 	while( fgets(line, sizeof(line), cmd) ) {
 		//printf("HASH> %s\n", line);
-		strcpy(result, line);
+		//strcpy(result, line);
 	}
 
 	if( feof(cmd) ) {
@@ -82,14 +85,6 @@ char* get_file_from_archive(char *hash, char *dest_filename) {
 	} else {
 		fprintf(stderr, "Broken pipe: %s\n", command);
 	}
-
-	char *e = strchr(result, '\n');
-	if( e != NULL ) {
-		e[0] = '\0';
-	}
-
-	return result;
-
 }
 
 /**
@@ -97,8 +92,6 @@ char* get_file_from_archive(char *hash, char *dest_filename) {
  * Replaces hashes by file-name-references
  */
 void get_parts_from_archive(struct message_line *message) {
-
-	int file_num = 0;
 
 	struct message_line *curr = message;
 	while( curr != NULL ) {
@@ -110,15 +103,15 @@ void get_parts_from_archive(struct message_line *message) {
 			strncpy(hash, s, e-s);
 			hash[e-s] = '\0';
 
-			char dest_filename[1024];
-			sprintf(dest_filename, "/tmp/message-part.%i", ++file_num);
-
-			char *filename = get_file_from_archive(hash, dest_filename);
+			char *dest_filename = temp_filename("message-part", "part");
+			get_file_from_archive(hash, dest_filename);
+			
 			char *ref_format = "{{REF((%s))}}\r\n";
-			char reference[strlen(ref_format)+strlen(filename)];
-			sprintf(reference, ref_format, filename);
+			char reference[strlen(ref_format)+strlen(dest_filename)];
+			sprintf(reference, ref_format, dest_filename);
 			message_line_set_s(curr, reference);
-			free(filename);
+			
+			free(dest_filename);
 		}
 
 		curr = (struct message_line*)curr->list.next;
@@ -261,7 +254,6 @@ void assemble_message(char *filename, char *out_filename) {
 
 	char command[2048];
 	sprintf(command, "%s \"%s\" \"%s\"", assembler_program, filename, out_filename);
-	printf("EXEC: %s\n", command);
 
 	FILE *cmd = popen(command, "r");
 	if( cmd == NULL ) {
@@ -271,6 +263,7 @@ void assemble_message(char *filename, char *out_filename) {
 
 	char line[2048];
 	while( fgets(line, sizeof(line), cmd) ) {
+		//printf("> %s", line);
 		//strcpy(result, line);
 	}
 
@@ -305,14 +298,12 @@ void get_message(int argc, char *argv[]) {
 		exit(EX_IOERR);
 	}
 
-	char tmp_filename[1024];
-	sprintf(tmp_filename, "%s/archive-message", output_dir);
+	char *tmp_filename = temp_filename("archive", ".msg");
+	get_file_from_archive(hash, tmp_filename);
 
-	char *message_file = get_file_from_archive(hash, tmp_filename);
-
-	FILE *fp = fopen(message_file, "r");
+	FILE *fp = fopen(tmp_filename, "r");
 	if( fp == NULL ) {
-		fprintf(stderr, "Failed to open file: %s\n", message_file);
+		fprintf(stderr, "Failed to open file: %s\n", tmp_filename);
 		exit(EX_IOERR);
 	}
 
