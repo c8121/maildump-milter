@@ -44,6 +44,8 @@ struct file_description {
 };
 
 char *output_dir = "/tmp";
+char *message_output_filename = "message";
+char *part_output_filename_prefix = "message-part";
 int show_result_filename_only = 0;
 
 
@@ -53,7 +55,7 @@ int last_file_num = 0;
  * 
  */
 void usage() {
-	printf("Usage: mailparser [-f] <file>\n");
+	printf("Usage: mailparser [-f] [-m <message filename>] [-p <part filename prefix>] <file>\n");
 }
 
 /**
@@ -61,7 +63,7 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "f";
+	const char *options = "fm:p:";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
@@ -69,6 +71,15 @@ void configure(int argc, char *argv[]) {
 
 		case 'f':
 			show_result_filename_only = 1;
+			break;
+
+
+		case 'm':
+			message_output_filename = optarg;
+			break;
+			
+		case 'p':
+			part_output_filename_prefix = optarg;
 			break;
 		}
 	}
@@ -271,7 +282,7 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 void save_message(struct message_line *start) {
 
 	char filename[1024];
-	sprintf(filename, "%s/message", output_dir);
+	sprintf(filename, "%s/%s", output_dir, message_output_filename);
 
 	FILE *fp = fopen(filename, "w");
 	if( fp == NULL ) {
@@ -351,7 +362,7 @@ struct file_description* get_file_description(struct message_line *part) {
 		strcpy(ext, "bin");
 	}
 
-	sprintf(fd->filename, "%s/message-part.%i.%s", output_dir, ++last_file_num, ext);
+	sprintf(fd->filename, "%s/%s.%i.%s", output_dir, part_output_filename_prefix, ++last_file_num, ext);
 
 	return fd;
 }

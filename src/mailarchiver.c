@@ -36,7 +36,7 @@
 #define MAX_LINE_LENGTH 1024
 
 char *parser_program = "./bin/mailparser -f";
-char *assembler_program = "./bin/mailassembler";
+char *assembler_program = "./bin/mailassembler -f";
 char *add_to_archive_program = "./bin/archive add";
 char *copy_from_archive_program = "./bin/archive copy";
 
@@ -256,7 +256,6 @@ char* parse_message(char *filename) {
 /**
  * Calls mailassembler program
  * 
- * Caller must free result
  */
 void assemble_message(char *filename, char *out_filename) {
 
