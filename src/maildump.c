@@ -24,6 +24,10 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
+#include <bsd/stdlib.h> //required by file_util
+
+#include "./lib/file_util.c"
+
 #include <libmilter/mfapi.h>
 
 
@@ -57,10 +61,10 @@ struct SessionData* get_session_data(SMFICTX *ctx) {
 		//printf("Create new session: %p\n", ctx);
 		sessionData = malloc(sizeof(sessionData));
 
-		sessionData->fileName = (char*) malloc(64);
-		sprintf(sessionData->fileName, "%jd-%i.msg", time(0), rand());
+		sessionData->fileName = malloc(254);
+		sprintf(sessionData->fileName, "%jd-%i-%X.msg", time(0), rand(), arc4random());
 
-		sessionData->filePath = (char*) malloc(1024);
+		sessionData->filePath = malloc(2048);
 		sprintf(sessionData->filePath, "%s/.%s.filepart", outputDir, sessionData->fileName);
 
 

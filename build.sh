@@ -26,7 +26,7 @@ for r in $REQUIRE ; do
 	fi
 done
 
-gcc -o "$binDir/maildump" "$sourceDir/maildump.c" $REQUIRE -pthread
+gcc -o "$binDir/maildump" "$sourceDir/maildump.c" $REQUIRE -pthread -lbsd
 
 
 
