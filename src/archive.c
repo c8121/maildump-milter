@@ -39,6 +39,7 @@
 
 #define STORAGE_SUBDIR_LENGTH 2
 #define METADATA_FILE_EXTENSION ".meta"
+#define MAX_ARCHIVE_PATH_LENGTH 4096
 
 char *hash_program = "sha256sum -z";
 //char *hash_program = "sha1sum -z";
@@ -51,11 +52,15 @@ char *mkdir_program = "mkdir -p";
 char *storage_base_dir = "/tmp/test-archive";
 int save_metadata = 1;
 
+
+/**
+ * 
+ */
 void usage() {
 	printf("Usage:\n");
-	printf("    archive add <file>\n");
-	printf("    archive get <hash>\n");
-	printf("    archive copy <hash> <file>\n");
+	printf("    archive [-b <storage base dir>] add <file>\n");
+	printf("    archive [-b <storage base dir>] get <hash>\n");
+	printf("    archive [-b <storage base dir>] copy <hash> <file>\n");
 	printf("\n");
 	printf("Commands:\n");
 	printf("    add: Add a file to archive\n");
@@ -69,7 +74,23 @@ void usage() {
 	printf("\n");
 }
 
+/**
+ * Read command line arguments and configure application
+ */
+void configure(int argc, char *argv[]) {
 
+	const char *options = "b:";
+	int c;
+
+	while ((c = getopt(argc, argv, options)) != -1) {
+		switch(c) {
+
+		case 'b':
+			storage_base_dir = optarg;
+			break;
+		}
+	}
+}
 
 /**
  * Get a hash calculated from file contents.
@@ -249,20 +270,20 @@ char *find_archived_file(char *hash) {
  */
 char *get_archive_filename(char *hash) {
 
-	char *result = malloc(256);
-	memset(result, '\0', 256);
-
-	strcat(result, storage_base_dir);
-	strcat(result, "/");
+	char *result = malloc(MAX_ARCHIVE_PATH_LENGTH);
+	memset(result, '\0', MAX_ARCHIVE_PATH_LENGTH);
 
 	time_t now = time(NULL);
 	char subdir[20];
 	sprintf(subdir, "%lx", now / 60 / 60 / 24 / 3);
 
+	sprintf(result, 
+			"%s/%s/", 
+			storage_base_dir,
+			subdir
+	);
 
-	strcat(result, subdir);
-	strcat(result, "/");
-
+	
 	int n = strlen(result);
 	for(int i=0 ; i < STORAGE_SUBDIR_LENGTH ; i++ ) {
 		result[n+i] = hash[i];
@@ -271,6 +292,8 @@ char *get_archive_filename(char *hash) {
 	strcat(result, "/");
 	strcat(result, hash+STORAGE_SUBDIR_LENGTH);
 
+	fprintf(stderr, "ARCHIVE FILE: %s\n", result);
+	
 	return result;
 }
 
@@ -279,19 +302,19 @@ char *get_archive_filename(char *hash) {
  */
 void copy_from_archive(int argc, char *argv[]) {
 
-	if( argc < 4 ) {
+	if (argc - optind +1 < 4) {
 		fprintf(stderr, "Missing arguments\n");
 		usage();
 		exit(EX_USAGE);
 	}
 
-	char *hash = argv[2];
+	char *hash = argv[optind + 1];
 	if( strlen(hash) <= STORAGE_SUBDIR_LENGTH ) {
 		fprintf(stderr, "Invliad hash\n");
 		exit(EX_USAGE);
 	}
 
-	char *destination = argv[3];
+	char *destination = argv[optind + 2];
 	struct stat file_stat;
 	if( stat(destination, &file_stat) == 0 ) {
 		fprintf(stderr, "Destination file already exists: %s\n", destination);
@@ -318,7 +341,7 @@ void copy_from_archive(int argc, char *argv[]) {
  */
 void get_from_archive(int argc, char *argv[]) {
 
-	char *hash = argv[2];
+	char *hash = argv[optind + 1];
 	if( strlen(hash) <= STORAGE_SUBDIR_LENGTH ) {
 		fprintf(stderr, "Invliad hash\n");
 		exit(EX_USAGE);
@@ -342,7 +365,7 @@ void get_from_archive(int argc, char *argv[]) {
  */
 void add_to_archive(int argc, char *argv[]) {
 
-	char *filename = argv[2];
+	char *filename = argv[optind + 1];
 	struct stat file_stat;
 	if( stat(filename, &file_stat) != 0 ) {
 		fprintf(stderr, "File not found: %s\n", filename);
@@ -400,7 +423,9 @@ void add_to_archive(int argc, char *argv[]) {
  */
 int main(int argc, char *argv[]) {
 
-	if( argc < 3 ) {
+	configure(argc, argv);
+	
+	if (argc - optind +1 < 3) {
 		fprintf(stderr, "Missing arguments\n");
 		usage();
 		exit(EX_USAGE);
@@ -408,7 +433,7 @@ int main(int argc, char *argv[]) {
 
 	init_storage();
 
-	char *cmd = argv[1];
+	char *cmd = argv[optind];
 
 	if( strcasecmp(cmd, "add") == 0 ) {
 		add_to_archive(argc, argv);
