@@ -86,8 +86,10 @@ void replace_base64_content(struct message_line *ref, FILE *fp) {
 		base64_encode_chunk(buf, chunk, r);
 	}
 
-	message_line_set_s(ref, buf->s);
-	free(buf->s);
+	if( buf->s != NULL ) {
+		message_line_set_s(ref, buf->s);
+		free(buf->s);
+	}
 	free(buf);
 }
 
@@ -107,8 +109,10 @@ void replace_qp_content(struct message_line *ref, FILE *fp) {
 		qp_encode_chunk(buf, line);
 	}
 
-	message_line_set_s(ref, buf->s);
-	free(buf->s);
+	if( buf->s != NULL ) {
+		message_line_set_s(ref, buf->s);
+		free(buf->s);
+	}
 	free(buf);
 }
 
@@ -178,13 +182,12 @@ void find_file_references(void *start, void *end) {
 			char filename[e-s+1];
 			strncpy(filename, s, e-s);
 			filename[e-s] = '\0';
-
+			
 			replace_content(curr, encoding, filename);
 		}
 
 		curr = (struct message_line*)curr->list.next;
 	}
-
 }
 
 /**
@@ -218,7 +221,7 @@ void save_message(struct message_line *start, char *filename) {
 int main(int argc, char *argv[]) {
 
 	configure(argc, argv);
-	
+
 	if (argc - optind +1 < 3) {
 		fprintf(stderr, "Missing arguments\n");
 		usage();

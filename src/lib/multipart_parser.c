@@ -91,8 +91,7 @@ char* get_header_value(char *name, struct message_line *part) {
 				strcpy(tmp, result);
 				strcat(tmp, value);
 				free(result);
-				result = malloc(strlen(tmp)+1);
-				strcpy(result, tmp);
+				result = tmp;
 			}
 		}
 

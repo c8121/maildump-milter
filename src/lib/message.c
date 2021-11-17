@@ -54,6 +54,7 @@ void message_line_set_s(struct message_line *line, char *s) {
 void* message_line_create(struct message_line *prev, char *s) {
 
 	struct message_line *line = linked_item_create(prev, sizeof(struct message_line));
+	line->s = NULL;
 
 	message_line_set_s(line, s);
 
@@ -66,6 +67,7 @@ void* message_line_create(struct message_line *prev, char *s) {
 void __message_line_free_item(struct message_line *l) {
 	if( l->s != NULL ) {
 		free(l->s);
+		l->s = NULL;
 	}
 }
 
