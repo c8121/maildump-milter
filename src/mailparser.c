@@ -199,10 +199,6 @@ void undecoded_save(struct message_line *start, struct message_line *end, FILE *
 	while( curr != NULL && curr != end ) {
 
 		if( in_header == 1 ) {
-
-			if( show_result_filename_only != 1 )
-				printf("%i PART WITHOUT ENCODING> %s", curr->line_number, curr->s);
-
 			if( is_empty_line(curr->s) ) {
 				in_header = 0;
 			}
