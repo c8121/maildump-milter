@@ -130,35 +130,6 @@ char *create_hash(char *filename) {
 	return result;
 }
 
-
-/**
- * Execute a command, ignore output.
- * 
- * Return 0 on success
- */
-int exec_command(char *command) {
-
-	FILE *cmd = popen(command, "r");
-	if( cmd == NULL ) {
-		fprintf(stderr, "Failed to execute: %s\n", command);
-		return -1;
-	}
-	//printf("EXEC> %s\n", command);
-
-	char line[1024];
-	while( fgets(line, sizeof(line), cmd) ) {
-		//printf("%s", line);
-	}
-
-	if( feof(cmd) ) {
-		pclose(cmd);
-		return 0;
-	} else {
-		fprintf(stderr, "Broken pipe: %s\n", command);
-		return -1;
-	}
-}
-
 /**
  * Copy a file, create destination dir if create_dir == 1
  * 
@@ -180,7 +151,7 @@ int cp(char *source, char *dest, int create_dir) {
 
 		p[0] = '\0';
 		sprintf(command, "%s \"%s\"", mkdir_program, dirname);
-		if( exec_command(command) == 0 ) {
+		if( system(command) == 0 ) {
 			if( stat(dirname, &file_stat) != 0 ) {
 				fprintf(stderr, "Failed to create directory: %s\n", dirname);
 				return -1;
@@ -192,7 +163,7 @@ int cp(char *source, char *dest, int create_dir) {
 
 
 	sprintf(command, "%s \"%s\" \"%s\"", copy_program, source, dest);
-	if( exec_command(command) == 0 ) {
+	if( system(command) == 0 ) {
 		if( stat(dest, &file_stat) != 0 )
 			return -1;
 		else
