@@ -76,6 +76,12 @@ void configure(int argc, char *argv[]) {
 
 		case 'm':
 			message_output_filename = optarg;
+			char *p;
+			if( (p = strrchr(message_output_filename, '/')) != NULL ) {
+				message_output_filename = p+1;
+				output_dir = malloc(p-optarg+1);
+				strncpy(output_dir, optarg, p-optarg);
+			}
 			break;
 			
 		case 'p':

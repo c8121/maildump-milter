@@ -314,7 +314,7 @@ void get_from_archive(int argc, char *argv[]) {
 
 	char *hash = argv[optind + 1];
 	if( strlen(hash) <= STORAGE_SUBDIR_LENGTH ) {
-		fprintf(stderr, "Invliad hash\n");
+		fprintf(stderr, "Invalid hash\n");
 		exit(EX_USAGE);
 	}
 

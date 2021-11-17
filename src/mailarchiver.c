@@ -38,12 +38,10 @@
 
 #define MAX_LINE_LENGTH 1024
 
-char *parser_program = "./bin/mailparser -f";
+char *parser_program = "./bin/mailparser -f -m";
 char *assembler_program = "./bin/mailassembler -f -d";
 char *add_to_archive_program = "./bin/archive add";
 char *copy_from_archive_program = "./bin/archive copy";
-
-char *output_dir = "/tmp";
 
 void usage() {
 	printf("Usage:\n");
@@ -105,12 +103,12 @@ void get_parts_from_archive(struct message_line *message) {
 
 			char *dest_filename = temp_filename("message-part", "part");
 			get_file_from_archive(hash, dest_filename);
-			
+
 			char *ref_format = "{{REF((%s))}}\r\n";
 			char reference[strlen(ref_format)+strlen(dest_filename)];
 			sprintf(reference, ref_format, dest_filename);
 			message_line_set_s(curr, reference);
-			
+
 			free(dest_filename);
 		}
 
@@ -183,6 +181,8 @@ void add_parts_to_archive(struct message_line *message) {
 			sprintf(reference, ref_format, hash);
 			message_line_set_s(curr, reference);
 			free(hash);
+
+			unlink(filename);
 		}
 
 		curr = (struct message_line*)curr->list.next;
@@ -212,66 +212,25 @@ void save_message(struct message_line *start, char *filename) {
 /**
  * Calls mailparser program, reads filename of created file from program output.
  * 
- * Caller must free result
  */
-char* parse_message(char *filename) {
+int parse_message(char *filename, char *out_filename) {
 
 	char command[2048];
-	sprintf(command, "%s \"%s\"", parser_program, filename);
+	sprintf(command, "%s \"%s\" \"%s\"", parser_program, out_filename, filename);
 
-	FILE *cmd = popen(command, "r");
-	if( cmd == NULL ) {
-		fprintf(stderr, "Failed to execute: %s\n", command);
-		return NULL;
-	}
-
-	char *result = malloc(1024);
-
-	char line[2048];
-	while( fgets(line, sizeof(line), cmd) ) {
-		strcpy(result, line);
-	}
-
-	if( feof(cmd) ) {
-		pclose(cmd);
-	} else {
-		fprintf(stderr, "Broken pipe: %s\n", command);
-	}
-
-	char *e = strchr(result, '\n');
-	if( e != NULL ) {
-		e[0] = '\0';
-	}
-
-	return result;
+	return system(command);
 }
 
 /**
  * Calls mailassembler program
  * 
  */
-void assemble_message(char *filename, char *out_filename) {
+int assemble_message(char *filename, char *out_filename) {
 
 	char command[2048];
 	sprintf(command, "%s \"%s\" \"%s\"", assembler_program, filename, out_filename);
 
-	FILE *cmd = popen(command, "r");
-	if( cmd == NULL ) {
-		fprintf(stderr, "Failed to execute: %s\n", command);
-		return;
-	}
-
-	char line[2048];
-	while( fgets(line, sizeof(line), cmd) ) {
-		//printf("> %s", line);
-		//strcpy(result, line);
-	}
-
-	if( feof(cmd) ) {
-		pclose(cmd);
-	} else {
-		fprintf(stderr, "Broken pipe: %s\n", command);
-	}
+	return system(command);
 }
 
 /**
@@ -287,7 +246,7 @@ void get_message(int argc, char *argv[]) {
 
 	char *hash = argv[2];
 	if( strlen(hash) < 8 ) {
-		fprintf(stderr, "Invliad hash\n");
+		fprintf(stderr, "Invalid hash\n");
 		exit(EX_USAGE);
 	}
 
@@ -326,6 +285,7 @@ void get_message(int argc, char *argv[]) {
 	fclose(fp);
 
 	if( message != NULL ) {
+
 		get_parts_from_archive(message);
 
 		save_message(message, tmp_filename);
@@ -350,7 +310,11 @@ void add_message(int argc, char *argv[]) {
 		exit(EX_IOERR);
 	}
 
-	char *parsed_file = parse_message(message_file);
+	char *parsed_file = temp_filename("parsed", ".msg");
+	if( parse_message(message_file, parsed_file) != 0 ) {
+		fprintf(stderr, "Parser call failed: %s\n", message_file);
+		exit(EX_IOERR);
+	}
 
 	FILE *fp = fopen(parsed_file, "r");
 	if( fp == NULL ) {
@@ -377,15 +341,19 @@ void add_message(int argc, char *argv[]) {
 	fclose(fp);
 
 	if( message != NULL ) {
+
 		add_parts_to_archive(message);
 
-		char tmp_filename[1024];
-		sprintf(tmp_filename, "%s/archive-message", output_dir);
-
+		char *tmp_filename = temp_filename("archive", ".msg");
 		save_message(message, tmp_filename);
+
 		char *hash = add_file_to_archive(tmp_filename);
-		printf("ADDED: %s\n", hash);
+		printf("%s\n", hash);
+
 		free(hash);
+		unlink(tmp_filename);
+		unlink(parsed_file);
+
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
 	}
@@ -403,6 +371,9 @@ int main(int argc, char *argv[]) {
 		exit(EX_USAGE);
 	}
 
+	//Create seed for rand() used in file_util.c for example.
+	srand(time(NULL));
+	
 	char *cmd = argv[1];
 
 	if( strcasecmp(cmd, "add") == 0 ) {
