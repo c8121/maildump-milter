@@ -10,7 +10,7 @@
 
 #define BASE64 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
-#define MAX_MALLOC_SIZE 4206592 //4MB
+#define BASE64_MAX_MALLOC_SIZE 4206592 //4MB
 
 struct base64_encoding_buffer {
 	char *s;
@@ -128,8 +128,8 @@ void base64_append_chunk(struct base64_decoding_buffer *buf, unsigned char *s, s
 	} else {
 		if( buf->encoded_avail < buf->encoded_len + len + 1 ) {
 			size_t malloc_size = buf->encoded_len * 2;
-			if( malloc_size > MAX_MALLOC_SIZE ) {
-				malloc_size = MAX_MALLOC_SIZE;
+			if( malloc_size > BASE64_MAX_MALLOC_SIZE ) {
+				malloc_size = BASE64_MAX_MALLOC_SIZE;
 			}
 			unsigned char *tmp = malloc(buf->encoded_avail + malloc_size + len + 1);
 			memcpy(tmp, buf->encoded, buf->encoded_len);

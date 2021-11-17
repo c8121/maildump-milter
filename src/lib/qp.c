@@ -10,6 +10,8 @@
 
 #define HEX "0123456789ABCDEF"
 
+#define QP_MAX_MALLOC_SIZE 4096
+
 struct qp_encoding_buffer {
 	char *s;
 	int max_line_length; //must be set before first call of qp_encode_chunk
@@ -18,6 +20,8 @@ struct qp_encoding_buffer {
 
 struct qp_decoding_buffer {
 	char *s;
+	size_t len;
+	size_t len_avail;
 };
 
 /**
@@ -118,15 +122,30 @@ void qp_decode_chunk(struct qp_decoding_buffer *buf, unsigned char *s)
 	}
 	*o++ = '\0';
 
+	size_t out_len = strlen(out);
 	if( buf->s == NULL ) {
-		buf->s = malloc(strlen(out)+1);
+		size_t malloc_size = out_len * 4;
+		buf->s = malloc(malloc_size);
 		strcpy(buf->s, out);
+		buf->len = out_len;
+		buf->len_avail = malloc_size;
 	} else {
-		unsigned char *tmp = malloc(strlen(buf->s)+strlen(out)+1);
-		strcpy(tmp, buf->s);
-		strcat(tmp, out);
-		free(buf->s);
-		buf->s = tmp;
+		if( buf->len_avail < buf->len + out_len + 1 ) {
+			size_t malloc_size = buf->len * 2;
+			if( malloc_size > QP_MAX_MALLOC_SIZE ) {
+				malloc_size = QP_MAX_MALLOC_SIZE;
+			}
+			unsigned char *tmp = malloc(buf->len_avail + malloc_size + out_len + 1);
+			memcpy(tmp, buf->s, buf->len);
+			free(buf->s);
+			buf->s = tmp;
+			buf->len_avail += malloc_size + out_len + 1;
+		}
+
+		strcpy(buf->s + buf->len, out);
+		buf->len += out_len;
 	}
+	
+	free(out);
 }
 

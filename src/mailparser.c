@@ -129,6 +129,7 @@ void qp_decode_save(struct message_line *start, struct message_line *end, FILE *
 	int in_header = 1;
 	struct qp_decoding_buffer *buf = malloc(sizeof(struct qp_decoding_buffer));
 	buf->s = NULL;
+	buf->len = 0;
 
 	struct message_line *curr = start;
 	while( curr != NULL && curr != end ) {
