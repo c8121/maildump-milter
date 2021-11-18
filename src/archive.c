@@ -229,7 +229,7 @@ char *encode_file(char *filename) {
 		char * tmp_filename = temp_filename("compressed-", "");
 		command = strreplace(compress_program, "{{input_file}}", in_filename);
 		command = strreplace_free(command, "{{output_file}}", tmp_filename);
-		printf("EXEC %s\n", command);
+		//printf("EXEC %s\n", command);
 
 		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
 			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
@@ -248,7 +248,7 @@ char *encode_file(char *filename) {
 		char *command = strreplace(encode_program, "{{input_file}}", in_filename);
 		command = strreplace_free(command, "{{output_file}}", tmp_filename);
 		command = strreplace_free(command, "{{password_file}}", password_file);
-		printf("EXEC %s\n", command);
+		//printf("EXEC %s\n", command);
 
 		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
 			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
@@ -281,7 +281,7 @@ char *decode_file(char *filename) {
 		char *command = strreplace(decode_program, "{{input_file}}", in_filename);
 		command = strreplace_free(command, "{{output_file}}", tmp_filename);
 		command = strreplace_free(command, "{{password_file}}", password_file);
-		printf("EXEC %s\n", command);
+		//printf("EXEC %s\n", command);
 
 		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
 			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
@@ -298,7 +298,7 @@ char *decode_file(char *filename) {
 		char * tmp_filename = temp_filename("uncompressed-", "");
 		command = strreplace(uncompress_program, "{{input_file}}", in_filename);
 		command = strreplace_free(command, "{{output_file}}", tmp_filename);
-		printf("EXEC %s\n", command);
+		//printf("EXEC %s\n", command);
 
 		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
 			fprintf(stderr, "Failed to encode file: %s\n", in_filename);

@@ -50,5 +50,5 @@ gcc -o "$binDir/mailparser" "$sourceDir/mailparser.c"
 gcc -o "$binDir/mailassembler" "$sourceDir/mailassembler.c"
 
 echo "Build archive & mailarchiver"
-gcc -g -o "$binDir/archive" "$sourceDir/archive.c" -lbsd
-gcc -g -o "$binDir/mailarchiver" "$sourceDir/mailarchiver.c" -lbsd
+gcc -o "$binDir/archive" "$sourceDir/archive.c" -lbsd
+gcc -o "$binDir/mailarchiver" "$sourceDir/mailarchiver.c" -lbsd

@@ -98,7 +98,7 @@ void get_file_from_archive(char *hash, char *suffix, char *dest_filename) {
 	else
 		command = strreplace_free(command, "{{password_file}}", "NULL");
 
-	printf("EXEC: %s\n", command);
+	//printf("EXEC: %s\n", command);
 	struct stat file_stat;
 	if( system(command) != 0 || stat(dest_filename, &file_stat) != 0 ) {
 		fprintf(stderr, "Failed to get file: %s\n", hash);
