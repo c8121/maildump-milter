@@ -54,6 +54,9 @@ char *hash_program = "sha256sum -z";
 char *copy_program = "cp -f {{input_file}} {{output_file}}";
 char *mkdir_program = "mkdir -p {{dirname}}";
 
+char *compress_program = "gzip -c -n {{input_file}} > {{output_file}}";
+char *uncompress_program = "gzip -c -d {{input_file}} > {{output_file}}";
+
 char *password_file = NULL;
 char *encode_program = "openssl enc -aes-256-cbc -e -in {{input_file}} -out {{output_file}} -pbkdf2 -pass file:{{password_file}}";
 char *decode_program = "openssl enc -aes-256-cbc -d -in {{input_file}} -out {{output_file}} -pbkdf2 -pass file:{{password_file}}";
@@ -208,19 +211,47 @@ int cp(char *source, char *dest, int create_dir) {
  */
 char *encode_file(char *filename) {
 
-	char *out_filename = temp_filename("encoded-", "");
-
-	char *command = strreplace(encode_program, "{{input_file}}", filename);
-	command = strreplace_free(command, "{{output_file}}", out_filename);
-	command = strreplace_free(command, "{{password_file}}", password_file);
-	printf("EXEC %s\n", command);
-
+	char *out_filename = filename; //Init if no encoding will be done below due to config
+	char *in_filename = filename;
+	char *command;
 	struct stat file_stat;
-	if( system(command) != 0 || stat(out_filename, &file_stat) != 0 ) {
-		fprintf(stderr, "Failed to encode file: %s\n", filename);
-		exit(EX_IOERR);
-	} 
-	free(command);
+
+	if( compress_program ) {
+
+		char * tmp_filename = temp_filename("compressed-", "");
+		command = strreplace(compress_program, "{{input_file}}", in_filename);
+		command = strreplace_free(command, "{{output_file}}", tmp_filename);
+		printf("EXEC %s\n", command);
+
+		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
+			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
+			exit(EX_IOERR);
+		} 
+		free(command);
+
+		out_filename = tmp_filename;
+		in_filename = out_filename; //Input for next encoder step
+	}
+
+	if( password_file && encode_program ) {
+
+		char *tmp_filename = temp_filename("encoded-", "");
+
+		char *command = strreplace(encode_program, "{{input_file}}", in_filename);
+		command = strreplace_free(command, "{{output_file}}", tmp_filename);
+		command = strreplace_free(command, "{{password_file}}", password_file);
+		printf("EXEC %s\n", command);
+
+		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
+			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
+			exit(EX_IOERR);
+		} 
+		free(command);
+
+		if( strcmp(in_filename, filename) != 0 )
+			unlink(in_filename); //Delete result from previous step
+		out_filename = tmp_filename;
+	}
 
 	return out_filename;
 }
@@ -230,19 +261,47 @@ char *encode_file(char *filename) {
  */
 char *decode_file(char *filename) {
 
-	char *out_filename = temp_filename("decoded-", "");
-
-	char *command = strreplace(decode_program, "{{input_file}}", filename);
-	command = strreplace_free(command, "{{output_file}}", out_filename);
-	command = strreplace_free(command, "{{password_file}}", password_file);
-	printf("EXEC %s\n", command);
-
+	char *out_filename = filename; //Init if no decoding will be done below due to config
+	char *in_filename = filename;
+	char *command;
 	struct stat file_stat;
-	if( system(command) != 0 || stat(out_filename, &file_stat) != 0 ) {
-		fprintf(stderr, "Failed to decode file: %s\n", filename);
-		exit(EX_IOERR);
-	} 
-	free(command);
+
+	if( password_file && decode_program ) {
+
+		char *tmp_filename = temp_filename("decoded-", "");
+
+		char *command = strreplace(decode_program, "{{input_file}}", in_filename);
+		command = strreplace_free(command, "{{output_file}}", tmp_filename);
+		command = strreplace_free(command, "{{password_file}}", password_file);
+		printf("EXEC %s\n", command);
+
+		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
+			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
+			exit(EX_IOERR);
+		} 
+		free(command);
+
+		out_filename = tmp_filename;
+		in_filename = out_filename; //Input for next encoder step
+	}
+
+	if( compress_program ) {
+
+		char * tmp_filename = temp_filename("uncompressed-", "");
+		command = strreplace(uncompress_program, "{{input_file}}", in_filename);
+		command = strreplace_free(command, "{{output_file}}", tmp_filename);
+		printf("EXEC %s\n", command);
+
+		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
+			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
+			exit(EX_IOERR);
+		} 
+		free(command);
+
+		if( strcmp(in_filename, filename) != 0 )
+			unlink(in_filename); //Delete result from previous step
+		out_filename = tmp_filename;
+	}
 
 	return out_filename;
 }
@@ -338,7 +397,7 @@ char *get_archive_filename(char *hash) {
 	strcat(result, "/");
 	strcat(result, hash+STORAGE_SUBDIR_LENGTH);
 
-	fprintf(stderr, "ARCHIVE FILE: %s\n", result);
+	//fprintf(stderr, "ARCHIVE FILE: %s\n", result);
 
 	return result;
 }
@@ -370,7 +429,7 @@ void copy_from_archive(int argc, char *argv[]) {
 	char *archive_file = find_archived_file(hash);
 	if( archive_file != NULL ) {
 
-		if( password_file && encode_program ) {
+		if( decode_program || uncompress_program ) {
 			char *tmp_file = decode_file(archive_file);
 			cp(tmp_file, destination, 0);
 			unlink(tmp_file);
@@ -433,7 +492,7 @@ void add_to_archive(int argc, char *argv[]) {
 	}
 
 	char *archive_file = find_archived_file(hash);
-	
+
 	if( archive_file != NULL ) {
 
 		//File already exists in archive, print hash only
@@ -447,7 +506,7 @@ void add_to_archive(int argc, char *argv[]) {
 
 		char *source_file;
 		int delete_source_file = 0;
-		if( password_file && encode_program ) {
+		if( encode_program || compress_program ) {
 			source_file = encode_file(filename);
 			delete_source_file = 1;
 		} else {
