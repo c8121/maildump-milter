@@ -360,8 +360,11 @@ char *find_archived_file(char *hash) {
 		sprintf(curr, "%s/%s", storage_base_dir, entry->d_name);
 		//printf("Looking for %s in %s\n", subdir, curr);
 
-		result = malloc(strlen(curr) + strlen(subdir) + strlen(hash) + 3);
+		result = malloc(strlen(curr) + strlen(subdir) + strlen(hash) + 3 + (archive_file_suffix ? strlen(archive_file_suffix) : 0));
 		sprintf(result, "%s/%s/%s", curr, subdir, hash + STORAGE_SUBDIR_LENGTH);
+		
+		if( archive_file_suffix )
+			strcat(result, archive_file_suffix);
 
 		if( stat(result, &file_stat) != 0 ) {
 			free(result);

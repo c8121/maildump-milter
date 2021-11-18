@@ -44,7 +44,7 @@ char *assembler_program = "./bin/mailassembler -f -d {{input_file}} {{output_fil
 
 char *password_file = NULL;
 char *add_to_archive_program = "./bin/archive -m -s \"{{suffix}}\" -p {{password_file}} add {{input_file}}";
-char *copy_from_archive_program = "./bin/archive -p {{password_file}} copy {{hash}} {{output_file}}";
+char *copy_from_archive_program = "./bin/archive  -s \"{{suffix}}\" -p {{password_file}} copy {{hash}} {{output_file}}";
 
 /**
  * 
@@ -88,9 +88,10 @@ void configure(int argc, char *argv[]) {
 /**
  * Caller must free result
  */
-void get_file_from_archive(char *hash, char *dest_filename) {
+void get_file_from_archive(char *hash, char *suffix, char *dest_filename) {
 
 	char *command = strreplace(copy_from_archive_program, "{{hash}}", hash);
+	command = strreplace_free(command, "{{suffix}}", suffix);
 	command = strreplace_free(command, "{{output_file}}", dest_filename);
 	if( password_file != NULL )
 		command = strreplace_free(command, "{{password_file}}", password_file);
@@ -138,7 +139,7 @@ void get_parts_from_archive(struct message_line *message) {
 			hash[e-s] = '\0';
 
 			char *dest_filename = temp_filename("message-part", "part");
-			get_file_from_archive(hash, dest_filename);
+			get_file_from_archive(hash, "", dest_filename);
 
 			char *ref_format = "{{REF((%s))}}\r\n";
 			char reference[strlen(ref_format)+strlen(dest_filename)];
@@ -309,7 +310,7 @@ void get_message(int argc, char *argv[]) {
 	}
 
 	char *tmp_filename = temp_filename("archive", ".msg");
-	get_file_from_archive(hash, tmp_filename);
+	get_file_from_archive(hash, ".msg", tmp_filename);
 
 	FILE *fp = fopen(tmp_filename, "r");
 	if( fp == NULL ) {
