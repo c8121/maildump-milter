@@ -55,7 +55,7 @@ int last_file_num = 0;
  * 
  */
 void usage() {
-	printf("Usage: mailparser [-f] [-m <message filename>] [-p <part filename prefix>] <file>\n");
+	printf("Usage: mailparser [-f] [-m <output message filename/path>] [-p <output part filename prefix>] <file>\n");
 }
 
 /**

@@ -37,6 +37,8 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
+#include "./lib/char_util.c"
+
 #define STORAGE_SUBDIR_LENGTH 2
 #define METADATA_FILE_EXTENSION ".meta"
 #define MAX_ARCHIVE_PATH_LENGTH 4096
@@ -46,8 +48,11 @@ char *hash_program = "sha256sum -z";
 //char *hash_program = "xxhasum";
 //char *hash_program = "xxh64sum";
 
-char *copy_program = "cp -f";
-char *mkdir_program = "mkdir -p";
+char *copy_program = "cp -f {{input_file}} {{output_file}}";
+char *mkdir_program = "mkdir -p {{dirname}}";
+
+char *encode_program = "openssl enc -aes-256-cbc -e -in {{input_file}} -out {{output_file}} -pbkdf2 -pass file:{{password_file}}";
+char *decode_program = "openssl enc -aes-256-cbc -d -in {{input_file}} -out {{output_file}} -pbkdf2 -pass file:{{password_file}}";
 
 char *storage_base_dir = "/tmp/test-archive";
 int save_metadata = 1;
@@ -137,7 +142,7 @@ char *create_hash(char *filename) {
  */
 int cp(char *source, char *dest, int create_dir) {
 
-	char command[4096];
+	char *command;
 	struct stat file_stat;
 
 	if( create_dir == 1 ) {
@@ -148,21 +153,27 @@ int cp(char *source, char *dest, int create_dir) {
 			fprintf(stderr, "Invalid name (no dir name): %s\n", dest);
 			return -1;
 		}
-
 		p[0] = '\0';
-		sprintf(command, "%s \"%s\"", mkdir_program, dirname);
-		if( system(command) == 0 ) {
-			if( stat(dirname, &file_stat) != 0 ) {
-				fprintf(stderr, "Failed to create directory: %s\n", dirname);
+
+
+		if( stat(dirname, &file_stat) != 0 ) {
+			command = strreplace(mkdir_program, "{{dirname}}", dirname);
+			//printf("EXEC %s\n", command);
+			if( system(command) == 0 ) {
+				if( stat(dirname, &file_stat) != 0 ) {
+					fprintf(stderr, "Failed to create directory: %s\n", dirname);
+					return -1;
+				}
+			} else {
 				return -1;
 			}
-		} else {
-			return -1;
+			free(command);
 		}
 	}
 
-
-	sprintf(command, "%s \"%s\" \"%s\"", copy_program, source, dest);
+	command = strreplace(copy_program, "{{input_file}}", source);
+	command = strreplace_free(command, "{{output_file}}", dest);
+	//printf("EXEC %s\n", command);
 	if( system(command) == 0 ) {
 		if( stat(dest, &file_stat) != 0 )
 			return -1;
@@ -171,6 +182,7 @@ int cp(char *source, char *dest, int create_dir) {
 	} else {
 		return -1;
 	}
+	free(command);
 }
 
 /**
@@ -254,7 +266,7 @@ char *get_archive_filename(char *hash) {
 			subdir
 	);
 
-	
+
 	int n = strlen(result);
 	for(int i=0 ; i < STORAGE_SUBDIR_LENGTH ; i++ ) {
 		result[n+i] = hash[i];
@@ -264,7 +276,7 @@ char *get_archive_filename(char *hash) {
 	strcat(result, hash+STORAGE_SUBDIR_LENGTH);
 
 	fprintf(stderr, "ARCHIVE FILE: %s\n", result);
-	
+
 	return result;
 }
 
@@ -395,7 +407,7 @@ void add_to_archive(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 
 	configure(argc, argv);
-	
+
 	if (argc - optind +1 < 3) {
 		fprintf(stderr, "Missing arguments\n");
 		usage();

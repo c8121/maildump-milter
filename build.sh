@@ -46,9 +46,9 @@ gcc -o "$binDir/mailforward" "$sourceDir/mailforward.c"
 
 
 echo "Build mailparser & mailassembler"
-gcc -g -o "$binDir/mailparser" "$sourceDir/mailparser.c"
+gcc -o "$binDir/mailparser" "$sourceDir/mailparser.c"
 gcc -o "$binDir/mailassembler" "$sourceDir/mailassembler.c"
 
 echo "Build archive"
-gcc -o "$binDir/archive" "$sourceDir/archive.c"
+gcc -g -o "$binDir/archive" "$sourceDir/archive.c"
 gcc -o "$binDir/mailarchiver" "$sourceDir/mailarchiver.c" -lbsd

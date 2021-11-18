@@ -32,16 +32,17 @@
 
 #include <bsd/stdlib.h> //required by file_util
 
+#include "./lib/char_util.c"
 #include "./lib/file_util.c"
 #include "../lib/sntools/src/lib/linked_items.c"
 #include "./lib/message.c"
 
 #define MAX_LINE_LENGTH 1024
 
-char *parser_program = "./bin/mailparser -f -m";
-char *assembler_program = "./bin/mailassembler -f -d";
-char *add_to_archive_program = "./bin/archive add";
-char *copy_from_archive_program = "./bin/archive copy";
+char *parser_program = "./bin/mailparser -f -m {{output_file}} {{input_file}}";
+char *assembler_program = "./bin/mailassembler -f -d {{input_file}} {{output_file}}";
+char *add_to_archive_program = "./bin/archive add {{input_file}}";
+char *copy_from_archive_program = "./bin/archive copy {{hash}} {{output_file}}";
 
 void usage() {
 	printf("Usage:\n");
@@ -61,9 +62,10 @@ void usage() {
  */
 void get_file_from_archive(char *hash, char *dest_filename) {
 
-	char command[2048];
-	sprintf(command, "%s %s \"%s\"", copy_from_archive_program, hash, dest_filename);
-
+	char *command = strreplace(copy_from_archive_program, "{{hash}}", hash);
+	command = strreplace_free(command, "{{output_file}}", dest_filename);
+	
+	//printf("EXEC: %s\n", command);
 	FILE *cmd = popen(command, "r");
 	if( cmd == NULL ) {
 		fprintf(stderr, "Failed to execute: %s\n", command);
@@ -83,6 +85,8 @@ void get_file_from_archive(char *hash, char *dest_filename) {
 	} else {
 		fprintf(stderr, "Broken pipe: %s\n", command);
 	}
+	
+	free(command);
 }
 
 /**
@@ -121,9 +125,9 @@ void get_parts_from_archive(struct message_line *message) {
  */
 char* add_file_to_archive(char *filename) {
 
-	char command[2048];
-	sprintf(command, "%s \"%s\"", add_to_archive_program, filename);
-
+	char *command = strreplace(add_to_archive_program, "{{input_file}}", filename);
+	
+	//printf("EXEC: %s\n", command);
 	FILE *cmd = popen(command, "r");
 	if( cmd == NULL ) {
 		fprintf(stderr, "Failed to execute: %s\n", command);
@@ -144,6 +148,8 @@ char* add_file_to_archive(char *filename) {
 	} else {
 		fprintf(stderr, "Broken pipe: %s\n", command);
 	}
+	
+	free(command);
 
 	char *e = strchr(result, '\n');
 	if( e != NULL ) {
@@ -215,10 +221,14 @@ void save_message(struct message_line *start, char *filename) {
  */
 int parse_message(char *filename, char *out_filename) {
 
-	char command[2048];
-	sprintf(command, "%s \"%s\" \"%s\"", parser_program, out_filename, filename);
+	char *command = strreplace(parser_program, "{{input_file}}", filename);
+	command = strreplace_free(command, "{{output_file}}", out_filename);
 
-	return system(command);
+	//printf("EXEC: %s\n", command);
+	int r = system(command);
+	free(command);
+
+	return r;
 }
 
 /**
@@ -227,10 +237,14 @@ int parse_message(char *filename, char *out_filename) {
  */
 int assemble_message(char *filename, char *out_filename) {
 
-	char command[2048];
-	sprintf(command, "%s \"%s\" \"%s\"", assembler_program, filename, out_filename);
+	char *command = strreplace(assembler_program, "{{input_file}}", filename);
+	command = strreplace_free(command, "{{output_file}}", out_filename);
 
-	return system(command);
+	//printf("EXEC: %s\n", command);
+	int r = system(command);
+	free(command);
+
+	return r;
 }
 
 /**
@@ -373,7 +387,7 @@ int main(int argc, char *argv[]) {
 
 	//Create seed for rand() used in file_util.c for example.
 	srand(time(NULL));
-	
+
 	char *cmd = argv[1];
 
 	if( strcasecmp(cmd, "add") == 0 ) {
