@@ -92,7 +92,7 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "b:p:s:";
+	const char *options = "b:p:s:m";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
@@ -101,7 +101,7 @@ void configure(int argc, char *argv[]) {
 		case 'b':
 			storage_base_dir = optarg;
 			break;
-			
+
 		case 's':
 			archive_file_suffix = optarg;
 			break;
@@ -117,6 +117,9 @@ void configure(int argc, char *argv[]) {
 			} else {
 				password_file = NULL;
 			}
+			break;
+		case 'm':
+			save_metadata = 0;
 			break;
 		}
 	}
@@ -401,7 +404,7 @@ char *get_archive_filename(char *hash) {
 
 	strcat(result, "/");
 	strcat(result, hash+STORAGE_SUBDIR_LENGTH);
-	
+
 	if( archive_file_suffix )
 		strcat(result, archive_file_suffix);
 
