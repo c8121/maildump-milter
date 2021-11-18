@@ -32,6 +32,10 @@ Requirements
 
     apt install libbsd-dev
 
+Optional:
+
+    apt install catdoc
+
 ### maildump
 
 To dump all mails from Postfix, a postfix milter must be set up.
