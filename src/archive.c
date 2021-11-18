@@ -62,6 +62,7 @@ char *encode_program = "openssl enc -aes-256-cbc -e -in {{input_file}} -out {{ou
 char *decode_program = "openssl enc -aes-256-cbc -d -in {{input_file}} -out {{output_file}} -pbkdf2 -pass file:{{password_file}}";
 
 char *storage_base_dir = "/tmp/test-archive";
+char *archive_file_suffix = NULL;
 int save_metadata = 1;
 
 
@@ -70,7 +71,7 @@ int save_metadata = 1;
  */
 void usage() {
 	printf("Usage:\n");
-	printf("    archive [-b <storage base dir>] [-p <password file>] add <file>\n");
+	printf("    archive [-b <storage base dir>] [-p <password file>] [-s <filename suffix>] add <file>\n");
 	printf("    archive [-b <storage base dir>] get <hash>\n");
 	printf("    archive [-b <storage base dir>] [-p <password file>] copy <hash> <file>\n");
 	printf("\n");
@@ -91,7 +92,7 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "b:p:";
+	const char *options = "b:p:s:";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
@@ -99,6 +100,10 @@ void configure(int argc, char *argv[]) {
 
 		case 'b':
 			storage_base_dir = optarg;
+			break;
+			
+		case 's':
+			archive_file_suffix = optarg;
 			break;
 
 		case 'p':
@@ -396,6 +401,9 @@ char *get_archive_filename(char *hash) {
 
 	strcat(result, "/");
 	strcat(result, hash+STORAGE_SUBDIR_LENGTH);
+	
+	if( archive_file_suffix )
+		strcat(result, archive_file_suffix);
 
 	//fprintf(stderr, "ARCHIVE FILE: %s\n", result);
 

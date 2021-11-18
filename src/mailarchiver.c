@@ -43,7 +43,7 @@ char *parser_program = "./bin/mailparser -f -m {{output_file}} {{input_file}}";
 char *assembler_program = "./bin/mailassembler -f -d {{input_file}} {{output_file}}";
 
 char *password_file = NULL;
-char *add_to_archive_program = "./bin/archive -p {{password_file}} add {{input_file}}";
+char *add_to_archive_program = "./bin/archive -s \"{{suffix}}\" -p {{password_file}} add {{input_file}}";
 char *copy_from_archive_program = "./bin/archive -p {{password_file}} copy {{hash}} {{output_file}}";
 
 /**
@@ -51,8 +51,8 @@ char *copy_from_archive_program = "./bin/archive -p {{password_file}} copy {{has
  */
 void usage() {
 	printf("Usage:\n");
-	printf("    mailarchiver add <file>\n");
-	printf("    mailarchiver get <hash> <file>\n");
+	printf("    mailarchiver [-p <password file>] add <file>\n");
+	printf("    mailarchiver [-p <password file>] get <hash> <file>\n");
 	printf("\n");
 	printf("Commands:\n");
 	printf("    add: Add a e-mail message file to archive\n");
@@ -155,9 +155,10 @@ void get_parts_from_archive(struct message_line *message) {
 /**
  * Caller must free result
  */
-char* add_file_to_archive(char *filename) {
+char* add_file_to_archive(char *filename, char *suffix) {
 
 	char *command = strreplace(add_to_archive_program, "{{input_file}}", filename);
+	command = strreplace_free(command, "{{suffix}}", suffix);
 	if( password_file != NULL )
 		command = strreplace_free(command, "{{password_file}}", password_file);
 	else
@@ -212,7 +213,7 @@ void add_parts_to_archive(struct message_line *message) {
 			strncpy(filename, s, e-s);
 			filename[e-s] = '\0';
 
-			char *hash = add_file_to_archive(filename);
+			char *hash = add_file_to_archive(filename, "");
 			if( hash == NULL ) {
 				fprintf(stderr, "Failed to add file to archive: %s\n", filename);
 				exit(EX_IOERR);
@@ -397,7 +398,7 @@ void add_message(int argc, char *argv[]) {
 		char *tmp_filename = temp_filename("archive", ".msg");
 		save_message(message, tmp_filename);
 
-		char *hash = add_file_to_archive(tmp_filename);
+		char *hash = add_file_to_archive(tmp_filename, ".msg");
 		if( hash != NULL ) {
 			printf("%s\n", hash);
 			free(hash);
