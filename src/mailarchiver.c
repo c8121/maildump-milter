@@ -41,9 +41,14 @@
 
 char *parser_program = "./bin/mailparser -f -m {{output_file}} {{input_file}}";
 char *assembler_program = "./bin/mailassembler -f -d {{input_file}} {{output_file}}";
-char *add_to_archive_program = "./bin/archive add {{input_file}}";
-char *copy_from_archive_program = "./bin/archive copy {{hash}} {{output_file}}";
 
+char *password_file = NULL;
+char *add_to_archive_program = "./bin/archive -p {{password_file}} add {{input_file}}";
+char *copy_from_archive_program = "./bin/archive -p {{password_file}} copy {{hash}} {{output_file}}";
+
+/**
+ * 
+ */
 void usage() {
 	printf("Usage:\n");
 	printf("    mailarchiver add <file>\n");
@@ -58,13 +63,40 @@ void usage() {
 }
 
 /**
+ * Read command line arguments and configure application
+ */
+void configure(int argc, char *argv[]) {
+
+	const char *options = "p:";
+	int c;
+
+	while ((c = getopt(argc, argv, options)) != -1) {
+		switch(c) {
+
+		case 'p':
+			password_file = optarg;
+			struct stat file_stat;
+			if( stat(password_file, &file_stat) != 0 ) {
+				fprintf(stderr, "Password file not found: %s\n", password_file);
+				exit(EX_IOERR);
+			}
+			break;
+		}
+	}
+}
+
+/**
  * Caller must free result
  */
 void get_file_from_archive(char *hash, char *dest_filename) {
 
 	char *command = strreplace(copy_from_archive_program, "{{hash}}", hash);
 	command = strreplace_free(command, "{{output_file}}", dest_filename);
-	
+	if( password_file != NULL )
+		command = strreplace_free(command, "{{password_file}}", password_file);
+	else
+		command = strreplace_free(command, "{{password_file}}", "NULL");
+
 	//printf("EXEC: %s\n", command);
 	FILE *cmd = popen(command, "r");
 	if( cmd == NULL ) {
@@ -85,7 +117,7 @@ void get_file_from_archive(char *hash, char *dest_filename) {
 	} else {
 		fprintf(stderr, "Broken pipe: %s\n", command);
 	}
-	
+
 	free(command);
 }
 
@@ -126,7 +158,11 @@ void get_parts_from_archive(struct message_line *message) {
 char* add_file_to_archive(char *filename) {
 
 	char *command = strreplace(add_to_archive_program, "{{input_file}}", filename);
-	
+	if( password_file != NULL )
+		command = strreplace_free(command, "{{password_file}}", password_file);
+	else
+		command = strreplace_free(command, "{{password_file}}", "NULL");
+
 	//printf("EXEC: %s\n", command);
 	FILE *cmd = popen(command, "r");
 	if( cmd == NULL ) {
@@ -148,7 +184,7 @@ char* add_file_to_archive(char *filename) {
 	} else {
 		fprintf(stderr, "Broken pipe: %s\n", command);
 	}
-	
+
 	free(command);
 
 	char *e = strchr(result, '\n');
@@ -252,19 +288,19 @@ int assemble_message(char *filename, char *out_filename) {
  */
 void get_message(int argc, char *argv[]) {
 
-	if( argc < 4 ) {
+	if (argc - optind +1 < 4) {
 		fprintf(stderr, "Missing arguments\n");
 		usage();
 		exit(EX_USAGE);
 	}
 
-	char *hash = argv[2];
+	char *hash = argv[optind + 1];
 	if( strlen(hash) < 8 ) {
-		fprintf(stderr, "Invalid hash\n");
+		fprintf(stderr, "Invalid hash: %s\n", hash);
 		exit(EX_USAGE);
 	}
 
-	char *destination = argv[3];
+	char *destination = argv[optind + 2];
 	struct stat file_stat;
 	if( stat(destination, &file_stat) == 0 ) {
 		fprintf(stderr, "Destination file already exists: %s\n", destination);
@@ -317,7 +353,7 @@ void get_message(int argc, char *argv[]) {
  */
 void add_message(int argc, char *argv[]) {
 
-	char *message_file = argv[2];
+	char *message_file = argv[optind + 1];
 	struct stat file_stat;
 	if( stat(message_file, &file_stat) != 0 ) {
 		fprintf(stderr, "File not found: %s\n", message_file);
@@ -362,9 +398,11 @@ void add_message(int argc, char *argv[]) {
 		save_message(message, tmp_filename);
 
 		char *hash = add_file_to_archive(tmp_filename);
-		printf("%s\n", hash);
+		if( hash != NULL ) {
+			printf("%s\n", hash);
+			free(hash);
+		}
 
-		free(hash);
 		unlink(tmp_filename);
 		unlink(parsed_file);
 
@@ -379,7 +417,9 @@ void add_message(int argc, char *argv[]) {
  */
 int main(int argc, char *argv[]) {
 
-	if( argc < 3 ) {
+	configure(argc, argv);
+
+	if (argc - optind +1 < 3) {
 		fprintf(stderr, "Missing arguments\n");
 		usage();
 		exit(EX_USAGE);
@@ -388,7 +428,7 @@ int main(int argc, char *argv[]) {
 	//Create seed for rand() used in file_util.c for example.
 	srand(time(NULL));
 
-	char *cmd = argv[1];
+	char *cmd = argv[optind];
 
 	if( strcasecmp(cmd, "add") == 0 ) {
 		add_message(argc, argv);

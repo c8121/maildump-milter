@@ -97,13 +97,17 @@ void configure(int argc, char *argv[]) {
 		case 'b':
 			storage_base_dir = optarg;
 			break;
-			
+
 		case 'p':
 			password_file = optarg;
-			struct stat file_stat;
-			if( stat(password_file, &file_stat) != 0 ) {
-				fprintf(stderr, "Password file not found: %s\n", password_file);
-				exit(EX_IOERR);
+			if( strcmp(password_file, "NULL") != 0 ) { //Passing NULL to actively omit passwort (convinient for program mailarchiver to omit passwort)
+				struct stat file_stat;
+				if( stat(password_file, &file_stat) != 0 ) {
+					fprintf(stderr, "Password file not found: %s\n", password_file);
+					exit(EX_IOERR);
+				}
+			} else {
+				password_file = NULL;
 			}
 			break;
 		}
@@ -429,6 +433,7 @@ void add_to_archive(int argc, char *argv[]) {
 	}
 
 	char *archive_file = find_archived_file(hash);
+	
 	if( archive_file != NULL ) {
 
 		//File already exists in archive, print hash only
@@ -446,13 +451,13 @@ void add_to_archive(int argc, char *argv[]) {
 			source_file = encode_file(filename);
 			delete_source_file = 1;
 		} else {
-			source_file = malloc(strlen(filename));
+			source_file = malloc(strlen(filename)+1);
 			strcpy(source_file, filename);
 			delete_source_file = 0;
 		}
 
 		archive_file = get_archive_filename(hash);
-		printf("CREATE: \"%s\"\n", archive_file);
+		//printf("CREATE: \"%s\"\n", archive_file);
 
 		if( cp(source_file, archive_file, 1) != 0 ) {
 
