@@ -98,27 +98,12 @@ void get_file_from_archive(char *hash, char *suffix, char *dest_filename) {
 	else
 		command = strreplace_free(command, "{{password_file}}", "NULL");
 
-	//printf("EXEC: %s\n", command);
-	FILE *cmd = popen(command, "r");
-	if( cmd == NULL ) {
-		fprintf(stderr, "Failed to execute: %s\n", command);
+	printf("EXEC: %s\n", command);
+	struct stat file_stat;
+	if( system(command) != 0 || stat(dest_filename, &file_stat) != 0 ) {
+		fprintf(stderr, "Failed to get file: %s\n", hash);
 		exit(EX_IOERR);
-	}
-
-	char *result = malloc(2048);
-
-	char line[2048];
-	while( fgets(line, sizeof(line), cmd) ) {
-		//printf("HASH> %s\n", line);
-		//strcpy(result, line);
-	}
-
-	if( feof(cmd) ) {
-		pclose(cmd);
-	} else {
-		fprintf(stderr, "Broken pipe: %s\n", command);
-	}
-
+	} 
 	free(command);
 }
 
@@ -142,7 +127,7 @@ void get_parts_from_archive(struct message_line *message) {
 			get_file_from_archive(hash, "", dest_filename);
 
 			char *ref_format = "{{REF((%s))}}\r\n";
-			char reference[strlen(ref_format)+strlen(dest_filename)];
+			char reference[strlen(ref_format)+strlen(dest_filename)+1];
 			sprintf(reference, ref_format, dest_filename);
 			message_line_set_s(curr, reference);
 
@@ -221,7 +206,7 @@ void add_parts_to_archive(struct message_line *message) {
 			}
 
 			char *ref_format = "{{ARCHIVE((%s))}}\r\n";
-			char reference[strlen(ref_format)+strlen(hash)];
+			char reference[strlen(ref_format)+strlen(hash)+1];
 			sprintf(reference, ref_format, hash);
 			message_line_set_s(curr, reference);
 			free(hash);

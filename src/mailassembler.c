@@ -159,7 +159,9 @@ void replace_content(struct message_line *ref, char *encoding, char *filename) {
 		printf("    Encoding: %s\n", encoding);
 	}
 
-	if( strcasestr(encoding, "quoted-printable") != NULL ) {
+	if( !encoding ) {
+		replace_unencoded_content(ref, fp);
+	} else if( strcasestr(encoding, "quoted-printable") != NULL ) {
 		replace_qp_content(ref, fp);
 	} else if( strcasestr(encoding, "base64") != NULL ) {
 		replace_base64_content(ref, fp);
@@ -168,7 +170,7 @@ void replace_content(struct message_line *ref, char *encoding, char *filename) {
 	}
 
 	fclose(fp);
-	
+
 	if( delete_input_files == 1 ) {
 		if( show_result_filename_only != 1 )
 			printf("Delete %s\n", filename);
@@ -279,13 +281,13 @@ int main(int argc, char *argv[]) {
 	if( message != NULL ) {
 		find_parts(message, &find_file_references, show_result_filename_only == 1 ? 0 : 1);
 		save_message(message, destination_file);
-		
+
 		if( delete_input_files == 1 ) {
 			if( show_result_filename_only != 1 )
 				printf("Delete %s\n", message_file);
 			unlink(message_file);
 		}
-		
+
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
 	}
