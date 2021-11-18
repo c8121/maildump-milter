@@ -37,7 +37,10 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
+#include <bsd/stdlib.h> //required by file_util
+
 #include "./lib/char_util.c"
+#include "./lib/file_util.c"
 
 #define STORAGE_SUBDIR_LENGTH 2
 #define METADATA_FILE_EXTENSION ".meta"
@@ -51,6 +54,7 @@ char *hash_program = "sha256sum -z";
 char *copy_program = "cp -f {{input_file}} {{output_file}}";
 char *mkdir_program = "mkdir -p {{dirname}}";
 
+char *password_file = NULL;
 char *encode_program = "openssl enc -aes-256-cbc -e -in {{input_file}} -out {{output_file}} -pbkdf2 -pass file:{{password_file}}";
 char *decode_program = "openssl enc -aes-256-cbc -d -in {{input_file}} -out {{output_file}} -pbkdf2 -pass file:{{password_file}}";
 
@@ -63,9 +67,9 @@ int save_metadata = 1;
  */
 void usage() {
 	printf("Usage:\n");
-	printf("    archive [-b <storage base dir>] add <file>\n");
+	printf("    archive [-b <storage base dir>] [-p <password file>] add <file>\n");
 	printf("    archive [-b <storage base dir>] get <hash>\n");
-	printf("    archive [-b <storage base dir>] copy <hash> <file>\n");
+	printf("    archive [-b <storage base dir>] [-p <password file>] copy <hash> <file>\n");
 	printf("\n");
 	printf("Commands:\n");
 	printf("    add: Add a file to archive\n");
@@ -84,7 +88,7 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "b:";
+	const char *options = "b:p:";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
@@ -92,6 +96,15 @@ void configure(int argc, char *argv[]) {
 
 		case 'b':
 			storage_base_dir = optarg;
+			break;
+			
+		case 'p':
+			password_file = optarg;
+			struct stat file_stat;
+			if( stat(password_file, &file_stat) != 0 ) {
+				fprintf(stderr, "Password file not found: %s\n", password_file);
+				exit(EX_IOERR);
+			}
 			break;
 		}
 	}
@@ -136,7 +149,8 @@ char *create_hash(char *filename) {
 }
 
 /**
- * Copy a file, create destination dir if create_dir == 1
+ * Copy a file.
+ * Create destination dir if create_dir == 1
  * 
  * Return 0 on success
  */
@@ -184,6 +198,51 @@ int cp(char *source, char *dest, int create_dir) {
 	}
 	free(command);
 }
+
+/**
+ * Caller must free result
+ */
+char *encode_file(char *filename) {
+
+	char *out_filename = temp_filename("encoded-", "");
+
+	char *command = strreplace(encode_program, "{{input_file}}", filename);
+	command = strreplace_free(command, "{{output_file}}", out_filename);
+	command = strreplace_free(command, "{{password_file}}", password_file);
+	printf("EXEC %s\n", command);
+
+	struct stat file_stat;
+	if( system(command) != 0 || stat(out_filename, &file_stat) != 0 ) {
+		fprintf(stderr, "Failed to encode file: %s\n", filename);
+		exit(EX_IOERR);
+	} 
+	free(command);
+
+	return out_filename;
+}
+
+/**
+ * Caller must free result
+ */
+char *decode_file(char *filename) {
+
+	char *out_filename = temp_filename("decoded-", "");
+
+	char *command = strreplace(decode_program, "{{input_file}}", filename);
+	command = strreplace_free(command, "{{output_file}}", out_filename);
+	command = strreplace_free(command, "{{password_file}}", password_file);
+	printf("EXEC %s\n", command);
+
+	struct stat file_stat;
+	if( system(command) != 0 || stat(out_filename, &file_stat) != 0 ) {
+		fprintf(stderr, "Failed to decode file: %s\n", filename);
+		exit(EX_IOERR);
+	} 
+	free(command);
+
+	return out_filename;
+}
+
 
 /**
  * Check storage directory
@@ -307,7 +366,15 @@ void copy_from_archive(int argc, char *argv[]) {
 	char *archive_file = find_archived_file(hash);
 	if( archive_file != NULL ) {
 
-		cp(archive_file, destination, 0);
+		if( password_file && encode_program ) {
+			char *tmp_file = decode_file(archive_file);
+			cp(tmp_file, destination, 0);
+			unlink(tmp_file);
+			free(tmp_file);
+		} else {
+			cp(archive_file, destination, 0);
+		}
+
 		printf("%s\n", destination);
 		free(archive_file);
 
@@ -354,27 +421,43 @@ void add_to_archive(int argc, char *argv[]) {
 		fprintf(stderr, "File not found: %s\n", filename);
 		exit(EX_IOERR);
 	}
-	//printf("FILE: \"%s\"\n", filename);
 
 	char *hash = create_hash(filename);
 	if( hash == NULL || strlen(hash) < 8 ) {
 		fprintf(stderr, "Invalid hash: '%s'\n", hash);
 		exit(EX_IOERR);
 	}
-	//printf("HASH: \"%s\"\n", hash);
 
 	char *archive_file = find_archived_file(hash);
 	if( archive_file != NULL ) {
+
+		//File already exists in archive, print hash only
 
 		printf("%s\n", hash);
 		free(archive_file);
 
 	} else {
 
+		//File does not exist in archive
+
+		char *source_file;
+		int delete_source_file = 0;
+		if( password_file && encode_program ) {
+			source_file = encode_file(filename);
+			delete_source_file = 1;
+		} else {
+			source_file = malloc(strlen(filename));
+			strcpy(source_file, filename);
+			delete_source_file = 0;
+		}
+
 		archive_file = get_archive_filename(hash);
-		//printf("CREATE: \"%s\"\n", archive_file);
-		if( cp(filename, archive_file, 1) != 0 ) {
+		printf("CREATE: \"%s\"\n", archive_file);
+
+		if( cp(source_file, archive_file, 1) != 0 ) {
+
 			fprintf(stderr, "Failed to copy file: \"%s\" to \"%s\"\n", filename, archive_file);
+
 		} else {
 
 			if( save_metadata != 0 ) {
@@ -398,6 +481,10 @@ void add_to_archive(int argc, char *argv[]) {
 
 			printf("%s\n", hash);
 		}
+
+		if( delete_source_file == 1 )
+			unlink(source_file);
+		free(source_file);
 	}
 }
 
