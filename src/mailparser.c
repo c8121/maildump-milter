@@ -39,14 +39,19 @@
 
 struct file_description {
 	char content_type[255];
-	char filename[255];
-	char encoding[255];
+	char filename[4096];			//local filename where file will be stored
+	char original_filename[4096];	//original file from header
+	char filename_suffix[512];		//suffix determindes from content-type or from original file name (txt, pdf, html...)
+	char encoding[255];				//transfer encoding (base64, quoted-printable, 7bit)
 };
 
 char *output_dir = "/tmp";
 char *message_output_filename = "message";
 char *part_output_filename_prefix = "message-part";
+char *part_text_filename_prefix = "message-part-text";
+
 int show_result_filename_only = 0;
+int create_text_files = 1;
 
 
 int last_file_num = 0;
@@ -274,7 +279,7 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 		if( start_free != end ) {	
 			struct message_line *end_free = (struct message_line*)end->list.prev;
 			end_free->list.next = NULL;
-			
+
 			content_start->list.next = (void*)end;
 			end->list.prev = (void*)content_start;
 
@@ -319,17 +324,19 @@ void save_message(struct message_line *start) {
 struct file_description* get_file_description(struct message_line *part) {
 
 	struct file_description *fd = malloc(sizeof(struct file_description));
+	fd->filename[0] = '\0';
+	fd->original_filename[0] = '\0';
+	fd->filename_suffix[0] = '\0';
+	fd->encoding[0] = '\0';
 
 	char *encoding = get_header_value("Content-Transfer-Encoding", part);
 	if( encoding != NULL ) {
 		strcpy(fd->encoding, encoding);
-	} else {
-		fd->encoding[0] = '\0';
 	}
 
-	char ext[6];
 	char *content_type = get_header_value("Content-Type", part);
 	if( content_type != NULL ) {
+
 		strcpy(fd->content_type, content_type);
 
 		if( strcasestr(content_type, "multipart/") != NULL ) {
@@ -338,38 +345,58 @@ struct file_description* get_file_description(struct message_line *part) {
 			return NULL;
 		}
 
-		if( strcasestr(content_type, "text/plain") != NULL ) {
-			strcpy(ext, "txt");
-		} else if( strcasestr(content_type, "text/html") != NULL ) {
-			strcpy(ext, "html");
-		} else if( strcasestr(content_type, "application/pdf") != NULL ) {
-			strcpy(ext, "pdf");
-		} else if( strcasestr(content_type, "image/jpg") != NULL || strcasestr(content_type, "image/jpeg") != NULL ) {
-			strcpy(ext, "jpg");
-		} else if( strcasestr(content_type, "image/gif") != NULL ) {
-			strcpy(ext, "gif");
-		} else if( strcasestr(content_type, "image/png") != NULL ) {
-			strcpy(ext, "png");
-
-		} else if( strcasestr(content_type, "application/") != NULL ) {
-			strcpy(ext, "bin");
-			char *name = get_header_attribute("name", content_type);
-			if( name != NULL ) {
-				char *p = strrchr(name, '.');
-				if( p != NULL )
-					strncpy(ext, p+1, 5);
-			}
+		char *name = get_header_attribute("name", content_type);
+		if( name != NULL ) {
+			strcpy(fd->original_filename, name);
+			char *p = strrchr(name, '.');
+			if( p != NULL )
+				strcpy(fd->filename_suffix, p+1);
 			free(name);
-		} else {
-			strcpy(ext, "bin");
 		}
 
-	} else {
-		fd->content_type[0] = '\0';
-		strcpy(ext, "bin");
+		if( strcasestr(content_type, "text/plain") != NULL ) {
+			strcpy(fd->filename_suffix, "txt");
+		} else if( strcasestr(content_type, "text/html") != NULL ) {
+			strcpy(fd->filename_suffix, "html");
+		} else if( strcasestr(content_type, "application/pdf") != NULL ) {
+			strcpy(fd->filename_suffix, "pdf");
+		} else if( strcasestr(content_type, "image/jpg") != NULL || strcasestr(content_type, "image/jpeg") != NULL ) {
+			strcpy(fd->filename_suffix, "jpg");
+		} else if( strcasestr(content_type, "image/gif") != NULL ) {
+			strcpy(fd->filename_suffix, "gif");
+		} else if( strcasestr(content_type, "image/png") != NULL ) {
+			strcpy(fd->filename_suffix, "png");
+		} else if ( !fd->filename_suffix ) {
+			strcpy(fd->filename_suffix, "bin");
+		}
 	}
 
-	sprintf(fd->filename, "%s/%s.%i.%s", output_dir, part_output_filename_prefix, ++last_file_num, ext);
+	if( !fd->original_filename || !fd->filename_suffix ) {
+		char *content_disposition = get_header_value("Content-Disposition", part);
+		if( content_disposition != NULL ) {
+			char *name = get_header_attribute("filename", content_disposition);
+			if( name != NULL ) {
+				
+				if( !fd->original_filename )
+					strcpy(fd->original_filename, name);
+				
+				if( !fd->filename_suffix ) {
+				char *p = strrchr(name, '.');
+				if( p != NULL )
+					strcpy(fd->filename_suffix, p+1);
+				}
+				
+				free(name);
+			}
+		}
+	}
+
+	if( !fd->filename_suffix ) {
+		strcpy(fd->filename_suffix, "bin");
+	}
+
+	//printf("****** CT(%s) OFN(%s) SF(%s)\n", fd->content_type, fd->original_filename, fd->filename_suffix);
+	sprintf(fd->filename, "%s/%s.%i.%s", output_dir, part_output_filename_prefix, ++last_file_num, fd->filename_suffix);
 
 	return fd;
 }

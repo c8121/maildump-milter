@@ -56,7 +56,7 @@ char* __last_non_whitespace(char *s) {
 
 
 /**
- * 
+ * Caller must free result
  */
 char* get_header_value(char *name, struct message_line *part) {
 
@@ -95,36 +95,46 @@ char* get_header_value(char *name, struct message_line *part) {
 			}
 		}
 
-		if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' )
+		if( is_empty_line(curr->s) )
 			break;
 
 		curr = (struct message_line*)curr->list.next;
+	}
+
+	if( result != NULL ) {
+		//RTrim
+		char *p = result + strlen(result) -1;
+		for( ; p > result && (*p == '\r' || *p == '\n') ; p-- )
+			*p = '\0';
 	}
 
 	return result;
 }
 
 /**
- * 
+ * Caller must free result
  */
 char* get_header_attribute(char *name, char *header_value) {
 
-	char find[strlen(name)+2];
+	size_t len = strlen(name);
+	char find[len+2];
 	strcpy(find, name);
-	find[strlen(name)] = '=';
-	find[strlen(name)+1] = '\0';
+	find[len] = '=';
+	find[len+1] = '\0';
 
 	char *p = strcasestr(header_value, find);
 	if( p == NULL ) {
 		return NULL;
 	}
 
-	char *result = malloc(strlen(p));
+	p += strlen(find);
+	char *result = malloc(strlen(p)+1);
 
 	//Copy chars without white space and quotes
-	int o = 0;
-	while( p[0] != '\0' ) {
-		switch(p[0]) {
+	char *o = result;
+	int end_reached = 0;
+	while( *p && !end_reached ) {
+		switch( *p ) {
 		case ' ':
 		case '\r':
 		case '\n':
@@ -133,12 +143,18 @@ char* get_header_attribute(char *name, char *header_value) {
 		case '\'':
 			//Ignore
 			break;
+			
+		case ';':
+			//End of value
+			end_reached = 1;
+			break;
+			
 		default:
-			result[o++] = p[0];
+			*o++ = *p;
 		}
 		p++;
 	}
-	result[o++] = '\0';
+	*o++ = '\0';
 
 	return result;
 }
@@ -195,7 +211,7 @@ void find_parts(struct message_line *message, void (*handle_part_function)(void 
 		} else {
 
 			if( curr_boundary[0] != '\0' ) {
-				
+
 				char *p = strstr(curr->s+2, curr_boundary);
 				if( p != NULL ) {
 
