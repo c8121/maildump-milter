@@ -1,4 +1,7 @@
 {
 	"id": "{{id}}",
+	"from": "{{from}}",
+	"to": "{{to}}",
+	"subject": "{{subject}}",
 	"body": "{{body}}"
 }

@@ -30,9 +30,12 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
+#include "../lib/sassmann/rfc2047decode.c"
+
 #include "./lib/char_util.c"
 #include "../lib/sntools/src/lib/linked_items.c"
 #include "./lib/message.c"
+#include "./lib/multipart_parser.c"
 
 char *add_doc_program = "curl -X POST -H 'Content-Type: application/json' 'http://localhost:8983/solr/{{collection}}/update/json/docs' --data-binary '{{json}}'";
 char *add_doc_json_tpl = "./config/solr-add-mail.tpl.json";
@@ -172,9 +175,15 @@ int main(int argc, char *argv[]) {
 	if( message == NULL ) {
 		exit(EX_IOERR);
 	}
+
+	char *from = get_header_value("From", message);
+	char *to = get_header_value("To", message);
+	char *subject = get_header_value("Subject", message);
+	rfc2047_decode(&subject);
+
 	message_line_free(message);
-	
-	
+
+
 	struct char_buffer *buf = NULL;
 	char *text_file;
 	for( int i=4 ; i < argc ; i++ ) {
@@ -193,8 +202,11 @@ int main(int argc, char *argv[]) {
 	char *body = json_string(buf->s);
 
 	char *json = strreplace(json_tpl->s, "{{id}}", id);
+	json = strreplace(json, "{{from}}", from);
+	json = strreplace(json, "{{to}}", to);
+	json = strreplace(json, "{{subject}}", subject);
 	json = strreplace(json, "{{body}}", body);
-	//printf("%s\n", json);
+	printf("%s\n", json);
 
 	char *command = strreplace(add_doc_program, "{{collection}}", collection);
 	command = strreplace_free(command, "{{json}}", json);
