@@ -39,12 +39,12 @@
 
 #define MAX_LINE_LENGTH 1024
 
-char *parser_program = "./bin/mailparser -f -m {{output_file}} {{input_file}}";
-char *assembler_program = "./bin/mailassembler -f -d {{input_file}} {{output_file}}";
+char *parser_program = "./bin/mailparser -f -m \"{{output_file}}\" \"{{input_file}}\"";
+char *assembler_program = "./bin/mailassembler -f -d \"{{input_file}}\" \"{{output_file}}\"";
 
 char *password_file = NULL;
-char *add_to_archive_program = "./bin/archive -m -s \"{{suffix}}\" -p {{password_file}} add {{input_file}}";
-char *copy_from_archive_program = "./bin/archive  -s \"{{suffix}}\" -p {{password_file}} copy {{hash}} {{output_file}}";
+char *add_to_archive_program = "./bin/archive -m -s \"{{suffix}}\" -p \"{{password_file}}\" add \"{{input_file}}\"";
+char *copy_from_archive_program = "./bin/archive  -s \"{{suffix}}\" -p \"{{password_file}}\" copy {{hash}} \"{{output_file}}\"";
 
 /**
  * 

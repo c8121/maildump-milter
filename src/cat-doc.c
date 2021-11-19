@@ -22,7 +22,7 @@
 #include "./lib/cat_util.c"
 #include "./lib/char_util.c"
 
-char *catdoc_program = "catdoc -d utf-8 {{input_file}}";
+char *catdoc_program = "catdoc -d utf-8 \"{{input_file}}\"";
 
 /**
  * 

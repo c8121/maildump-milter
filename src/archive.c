@@ -51,15 +51,15 @@ char *hash_program = "sha256sum -z";
 //char *hash_program = "xxhasum";
 //char *hash_program = "xxh64sum";
 
-char *copy_program = "cp -f {{input_file}} {{output_file}}";
-char *mkdir_program = "mkdir -p {{dirname}}";
+char *copy_program = "cp -f \"{{input_file}}\" \"{{output_file}}\"";
+char *mkdir_program = "mkdir -p \"{{dirname}}\"";
 
-char *compress_program = "gzip -c -n {{input_file}} > {{output_file}}";
-char *uncompress_program = "gzip -c -d {{input_file}} > {{output_file}}";
+char *compress_program = "gzip -c -n \"{{input_file}}\" > \"{{output_file}}\"";
+char *uncompress_program = "gzip -c -d \"{{input_file}}\" > \"{{output_file}}\"";
 
 char *password_file = NULL;
-char *encode_program = "openssl enc -aes-256-cbc -e -in {{input_file}} -out {{output_file}} -pbkdf2 -pass file:{{password_file}}";
-char *decode_program = "openssl enc -aes-256-cbc -d -in {{input_file}} -out {{output_file}} -pbkdf2 -pass file:{{password_file}}";
+char *encode_program = "openssl enc -aes-256-cbc -e -in \"{{input_file}}\" -out \"{{output_file}}\" -pbkdf2 -pass \"file:{{password_file}}\"";
+char *decode_program = "openssl enc -aes-256-cbc -d -in \"{{input_file}}\" -out \"{{output_file}}\" -pbkdf2 -pass \"file:{{password_file}}\"";
 
 char *storage_base_dir = "/tmp/test-archive";
 char *archive_file_suffix = NULL;

@@ -22,7 +22,7 @@
 #include "./lib/cat_util.c"
 #include "./lib/char_util.c"
 
-char *pdftotext_program = "pdftotext -enc UTF-8 {{input_file}} -";
+char *pdftotext_program = "pdftotext -enc UTF-8 \"{{input_file}}\" -";
 
 /**
  * 
