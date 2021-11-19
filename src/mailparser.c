@@ -67,7 +67,18 @@ int last_file_num = 0;
  * 
  */
 void usage() {
-	printf("Usage: mailparser [-f] [-m <output message filename/path>] [-p <output part filename prefix>] <file>\n");
+	printf("Usage: mailparser [-q] [-t] [-f <output message filename/path>] [-p <output part filename prefix>] <file>\n");
+	printf("\n");
+	printf("Options:\n");
+	printf("    -q              Quiet: No output besides the filename of message file.\n");
+	printf("\n");
+	printf("    -f <file name>  Name of the output file.\n");
+	printf("                    If the name contains a directory path, this dirctory path will be used to store files.\n");
+	printf("\n");
+	printf("    -p <prefix>     File name prefix use for message part files.\n");
+	printf("\n");
+	printf("    -t              Create text files from parts containing converted text content of parts.\n");
+	printf("\n");
 }
 
 /**
@@ -75,18 +86,18 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "ftm:p:";
+	const char *options = "qtf:p:";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
 		switch(c) {
 
-		case 'f':
+		case 'q':
 			show_result_filename_only = 1;
 			break;
 
 
-		case 'm':
+		case 'f':
 			message_output_filename = optarg;
 			char *p;
 			if( (p = strrchr(message_output_filename, '/')) != NULL ) {

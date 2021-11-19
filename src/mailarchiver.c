@@ -39,11 +39,11 @@
 
 #define MAX_LINE_LENGTH 1024
 
-char *parser_program = "./bin/mailparser -f -m \"{{output_file}}\" \"{{input_file}}\"";
-char *assembler_program = "./bin/mailassembler -f -d \"{{input_file}}\" \"{{output_file}}\"";
+char *parser_program = "./bin/mailparser -q -f \"{{output_file}}\" \"{{input_file}}\"";
+char *assembler_program = "./bin/mailassembler -q -d \"{{input_file}}\" \"{{output_file}}\"";
 
 char *password_file = NULL;
-char *add_to_archive_program = "./bin/archive -m -s \"{{suffix}}\" -p \"{{password_file}}\" add \"{{input_file}}\"";
+char *add_to_archive_program = "./bin/archive -n -s \"{{suffix}}\" -p \"{{password_file}}\" add \"{{input_file}}\"";
 char *copy_from_archive_program = "./bin/archive  -s \"{{suffix}}\" -p \"{{password_file}}\" copy {{hash}} \"{{output_file}}\"";
 
 /**
@@ -59,6 +59,9 @@ void usage() {
 	printf("         Returns the ID (=hash) of the file\n");
 	printf("\n");
 	printf("    get: Get a e-mail by its ID (hash) from archive\n");
+	printf("\n");
+	printf("Options:\n");
+	printf("    -p              Password file.\n");
 	printf("\n");
 }
 

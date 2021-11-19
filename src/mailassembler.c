@@ -47,7 +47,13 @@ int delete_input_files = 0;
  * 
  */
 void usage() {
-	printf("Usage: mailassembler [-f] [-d] <parsed file> <output file>\n");
+	printf("Usage: mailassembler [-q] [-d] <parsed file> <output file>\n");
+	printf("\n");
+	printf("Options:\n");
+	printf("    -q              Quiet: No output besides the filename of message file.\n");
+	printf("\n");
+	printf("    -d              Delete input files after all files have been assembled to a message file.\n");
+	printf("\n");
 }
 
 /**
@@ -55,13 +61,13 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "fd";
+	const char *options = "qd";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
 		switch(c) {
 
-		case 'f':
+		case 'q':
 			show_result_filename_only = 1;
 			break;
 

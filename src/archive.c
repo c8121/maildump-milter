@@ -71,7 +71,7 @@ int save_metadata = 1;
  */
 void usage() {
 	printf("Usage:\n");
-	printf("    archive [-b <storage base dir>] [-p <password file>] [-s <filename suffix>] add <file>\n");
+	printf("    archive [-b <storage base dir>] [-p <password file>] [-s <filename suffix>] [-n] add <file>\n");
 	printf("    archive [-b <storage base dir>] get <hash>\n");
 	printf("    archive [-b <storage base dir>] [-p <password file>] copy <hash> <file>\n");
 	printf("\n");
@@ -85,6 +85,15 @@ void usage() {
 	printf("    copy: Get a file by its ID (hash) from archive\n");
 	printf("         Copy the file to another file\n");
 	printf("\n");
+	printf("Options:\n");
+	printf("    -b              Storage base directory.\n");
+	printf("\n");
+	printf("    -s              Archive file suffix. This suffix will be appended to the archive file.\n");
+	printf("\n");
+	printf("    -p              Password file for encoding. Can be NULL to explicity omit encoding.\n");
+	printf("\n");
+	printf("    -n              No meta data: No not create/update/save meta data.\n");
+	printf("\n");
 }
 
 /**
@@ -92,7 +101,7 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "b:p:s:m";
+	const char *options = "b:p:s:n";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
@@ -118,7 +127,8 @@ void configure(int argc, char *argv[]) {
 				password_file = NULL;
 			}
 			break;
-		case 'm':
+			
+		case 'n':
 			save_metadata = 0;
 			break;
 		}
