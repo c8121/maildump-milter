@@ -32,6 +32,7 @@ Requirements
 
     apt install libmilter-dev
     apt install libbsd-dev
+    apt install libmailutils-dev
     apt install curl
 
 Optional:

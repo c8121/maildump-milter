@@ -30,7 +30,7 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
-#include "../lib/sassmann/rfc2047decode.c"
+#include <mailutils/mime.h>
 
 #include "./lib/char_util.c"
 #include "../lib/sntools/src/lib/linked_items.c"
@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "File not found: %s\n", email_file);
 		exit(EX_IOERR);
 	}
-	printf("Reading metadata/fields from: %s\n", email_file);
+	//printf("Reading metadata/fields from: %s\n", email_file);
 
 	struct message_line *message = read_message(email_file);
 	if( message == NULL ) {
@@ -178,8 +178,9 @@ int main(int argc, char *argv[]) {
 
 	char *from = get_header_value("From", message);
 	char *to = get_header_value("To", message);
-	char *subject = get_header_value("Subject", message);
-	rfc2047_decode(&subject);
+	char *subject_enc = get_header_value("Subject", message);
+	char *subject;
+	mu_rfc2047_decode("utf-8", subject_enc, &subject);
 
 	message_line_free(message);
 
@@ -193,7 +194,7 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "File not found: %s\n", text_file);
 			exit(EX_IOERR);
 		}
-		printf("Reading text from: %s\n", text_file);
+		//printf("Reading text from: %s\n", text_file);
 
 		buf = append_file(buf, text_file);
 		buf = strappend(buf, " ", 1);
@@ -206,7 +207,7 @@ int main(int argc, char *argv[]) {
 	json = strreplace(json, "{{to}}", to);
 	json = strreplace(json, "{{subject}}", subject);
 	json = strreplace(json, "{{body}}", body);
-	printf("%s\n", json);
+	//printf("%s\n", json);
 
 	char *command = strreplace(add_doc_program, "{{collection}}", collection);
 	command = strreplace_free(command, "{{json}}", json);

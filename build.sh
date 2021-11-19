@@ -50,7 +50,7 @@ gcc -o "$binDir/mailparser" "$sourceDir/mailparser.c"
 gcc -o "$binDir/mailassembler" "$sourceDir/mailassembler.c"
 
 echo "Build mailindexer"
-gcc -o "$binDir/mailindexer-solr" "$sourceDir/mailindexer-solr.c"
+gcc -o "$binDir/mailindexer-solr" "$sourceDir/mailindexer-solr.c" -lmailutils
 
 echo "Build archive & mailarchiver"
 gcc -o "$binDir/archive" "$sourceDir/archive.c" -lbsd

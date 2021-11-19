@@ -4,6 +4,7 @@
 
  * libmilter-dev
  * libbsd-dev
+ * libmailutils-dev
  * curl
  
 ### Optional 
