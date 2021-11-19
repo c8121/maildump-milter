@@ -35,14 +35,18 @@
 #include "./lib/base64.c"
 #include "./lib/qp.c"
 
+#include "./lib/char_util.c"
 #include "./lib/multipart_parser.c"
 
 struct file_description {
+
 	char content_type[255];
-	char filename[4096];			//local filename where file will be stored
 	char original_filename[4096];	//original file from header
 	char filename_suffix[512];		//suffix determindes from content-type or from original file name (txt, pdf, html...)
 	char encoding[255];				//transfer encoding (base64, quoted-printable, 7bit)
+
+	char filename[4096];			//local filename where part will be stored
+	char text_filename[4096];		//local filename where text content (concerted by cat-* utils) will be stored
 };
 
 char *output_dir = "/tmp";
@@ -51,9 +55,12 @@ char *part_output_filename_prefix = "message-part";
 char *part_text_filename_prefix = "message-part-text";
 
 int show_result_filename_only = 0;
-int create_text_files = 1;
 
+int create_text_files = 0;
+char *create_text_files_from = "html pdf doc";
+char *cat_program_tpl = "%s/cat-%s \"{{input_file}}\" > \"{{output_file}}\"";
 
+char *working_dir = NULL;
 int last_file_num = 0;
 
 /**
@@ -68,7 +75,7 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "fm:p:";
+	const char *options = "ftm:p:";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
@@ -87,6 +94,10 @@ void configure(int argc, char *argv[]) {
 				output_dir = malloc(p-optarg+1);
 				strncpy(output_dir, optarg, p-optarg);
 			}
+			break;
+
+		case 't':
+			create_text_files = 1;
 			break;
 
 		case 'p':
@@ -242,6 +253,23 @@ void save_part(struct message_line *start, struct message_line *end, struct file
 	}
 
 	fclose(fp);
+
+	if( create_text_files ) {
+
+		if( strcasestr(create_text_files_from, fd->filename_suffix) != NULL ) {
+
+			char cat_program[4096];
+			sprintf(cat_program, cat_program_tpl, working_dir, fd->filename_suffix);
+
+			char *command = strreplace(cat_program, "{{input_file}}", fd->filename);
+			command = strreplace_free(command, "{{output_file}}", fd->text_filename);
+
+			struct stat file_stat;
+			if( system(command) !=0 || stat(fd->text_filename, &file_stat) != 0 ) {
+				fprintf(stderr, "Failed to create text file: %s\n", fd->filename);
+			}
+		}
+	}
 }
 
 
@@ -376,16 +404,16 @@ struct file_description* get_file_description(struct message_line *part) {
 		if( content_disposition != NULL ) {
 			char *name = get_header_attribute("filename", content_disposition);
 			if( name != NULL ) {
-				
+
 				if( !fd->original_filename )
 					strcpy(fd->original_filename, name);
-				
+
 				if( !fd->filename_suffix ) {
-				char *p = strrchr(name, '.');
-				if( p != NULL )
-					strcpy(fd->filename_suffix, p+1);
+					char *p = strrchr(name, '.');
+					if( p != NULL )
+						strcpy(fd->filename_suffix, p+1);
 				}
-				
+
 				free(name);
 			}
 		}
@@ -397,6 +425,7 @@ struct file_description* get_file_description(struct message_line *part) {
 
 	//printf("****** CT(%s) OFN(%s) SF(%s)\n", fd->content_type, fd->original_filename, fd->filename_suffix);
 	sprintf(fd->filename, "%s/%s.%i.%s", output_dir, part_output_filename_prefix, ++last_file_num, fd->filename_suffix);
+	sprintf(fd->text_filename, "%s/%s.%i.%s", output_dir, part_text_filename_prefix, last_file_num, "txt");
 
 	return fd;
 }
@@ -420,7 +449,17 @@ void export_part_content(void *start, void *end) {
  */
 int main(int argc, char *argv[]) {
 
+
 	configure(argc, argv);
+
+	//Determine working directory, needed to find cat-* utils
+	char *p = strrchr(argv[0], '/');
+	if( p == NULL || !p ) {
+		fprintf(stderr, "Failed to determine working direcotry\n");
+		exit(EX_IOERR);
+	}
+	working_dir = malloc(strlen(argv[0]));
+	strncpy(working_dir, argv[0], p-argv[0]);
 
 	if (argc - optind +1 < 2) {
 		fprintf(stderr, "Missing arguments\n");
