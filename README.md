@@ -30,11 +30,13 @@ To forward message files to a SMTP-Server
 
 Requirements
 
+    apt install libmilter-dev
     apt install libbsd-dev
 
 Optional:
 
     apt install catdoc
+    apt install html2text
 
 ### maildump
 

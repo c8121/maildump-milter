@@ -57,4 +57,5 @@ echo "cat-* utils"
 gcc -o "$binDir/cat-dog" "$sourceDir/cat-dog.c"
 gcc -o "$binDir/cat-doc" "$sourceDir/cat-doc.c"
 gcc -o "$binDir/cat-pdf" "$sourceDir/cat-pdf.c"
+gcc -o "$binDir/cat-html" "$sourceDir/cat-html.c"
 
