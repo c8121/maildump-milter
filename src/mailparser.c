@@ -67,7 +67,7 @@ int last_file_num = 0;
  * 
  */
 void usage() {
-	printf("Usage: mailparser [-q] [-t] [-f <output message filename/path>] [-p <output part filename prefix>] <file>\n");
+	printf("Usage: mailparser [-q] [-t] [-f <output message filename/path>] [-p <output filename prefix for parts>] [-x <output filename prefix for texts>] <file>\n");
 	printf("\n");
 	printf("Options:\n");
 	printf("    -q              Quiet: No output besides the filename of message file.\n");
@@ -75,9 +75,11 @@ void usage() {
 	printf("    -f <file name>  Name of the output file.\n");
 	printf("                    If the name contains a directory path, this dirctory path will be used to store files.\n");
 	printf("\n");
-	printf("    -p <prefix>     File name prefix use for message part files.\n");
+	printf("    -p <prefix>     File name prefix to use for message part files.\n");
 	printf("\n");
 	printf("    -t              Create text files from parts containing converted text content of parts.\n");
+	printf("\n");
+	printf("    -x <prefix>     File name prefix to use for message text files.\n");
 	printf("\n");
 }
 
@@ -86,7 +88,7 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "qtf:p:";
+	const char *options = "qtx:f:p:";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
@@ -113,6 +115,10 @@ void configure(int argc, char *argv[]) {
 
 		case 'p':
 			part_output_filename_prefix = optarg;
+			break;
+
+		case 'x':
+			part_text_filename_prefix = optarg;
 			break;
 		}
 	}

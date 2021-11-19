@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
+#include <dirent.h>
 #include <string.h>
 #include <unistd.h>
 #include <sysexits.h>
@@ -39,12 +40,18 @@
 
 #define MAX_LINE_LENGTH 1024
 
-char *parser_program = "./bin/mailparser -q -f \"{{output_file}}\" \"{{input_file}}\"";
+char *parser_program = "./bin/mailparser -q -t -x \"{{index_text_files_prefix}}\" -f \"{{output_file}}\" \"{{input_file}}\"";
 char *assembler_program = "./bin/mailassembler -q -d \"{{input_file}}\" \"{{output_file}}\"";
 
 char *password_file = NULL;
 char *add_to_archive_program = "./bin/archive -n -s \"{{suffix}}\" -p \"{{password_file}}\" add \"{{input_file}}\"";
 char *copy_from_archive_program = "./bin/archive  -s \"{{suffix}}\" -p \"{{password_file}}\" copy {{hash}} \"{{output_file}}\"";
+
+char *index_name = NULL;
+char *indexer_program ="./bin/mailindexer-solr {{index_name}} {{hash}} {{message_file}} {{text_files}}";
+
+
+char *create_files_prefix;
 
 /**
  * 
@@ -61,7 +68,9 @@ void usage() {
 	printf("    get: Get a e-mail by its ID (hash) from archive\n");
 	printf("\n");
 	printf("Options:\n");
-	printf("    -p              Password file.\n");
+	printf("    -p              Password file. Files will be encrypted when a password is povided.\n");
+	printf("\n");
+	printf("    -i <index name> Index name (Solr collection). Files will be fulltext-indexed when a index name is provided.\n");
 	printf("\n");
 }
 
@@ -70,7 +79,7 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "p:";
+	const char *options = "p:i:";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
@@ -84,6 +93,15 @@ void configure(int argc, char *argv[]) {
 				exit(EX_IOERR);
 			}
 			break;
+
+		case 'i':
+			index_name = optarg;
+			if( strchr(index_name, '/') != NULL ) {
+				fprintf(stderr, "Invalid index name: %s\n", index_name);
+				exit(EX_IOERR);
+			}
+			break;
+
 		}
 	}
 }
@@ -222,7 +240,7 @@ void add_parts_to_archive(struct message_line *message) {
 }
 
 /**
- * Caller must free result
+ * 
  */
 void save_message(struct message_line *start, char *filename) {
 
@@ -242,6 +260,85 @@ void save_message(struct message_line *start, char *filename) {
 }
 
 /**
+ * 
+ */
+void index_message(char *hash, char *message_file) {
+
+	char *p = strrchr(message_file, '/');
+	if( p == NULL ) {
+		fprintf(stderr, "Failed to determine directory from message file path: %s\n", message_file);
+		return;
+	}
+
+	char *index_file_prefix = malloc(strlen(create_files_prefix)+7);
+	sprintf(index_file_prefix, "%s-index", create_files_prefix);
+
+	char *dir = malloc(strlen(message_file));
+	strncpy(dir, message_file, p-message_file);
+	dir[p-message_file] = '\0';
+	
+
+	DIR *d = opendir(dir);
+	if( d == NULL ) {
+		fprintf(stderr, "Failed to open directory: \"%s\", message file \"%s\", name \"%s\"\n", dir, message_file, p);
+		return;
+	}
+
+	struct char_buffer *file_list = NULL;
+
+	struct dirent *entry;
+	while ((entry = readdir(d)) != NULL) {
+
+		if( strstr(entry->d_name, index_file_prefix) == entry->d_name ) {
+
+			char fullname[4096];
+			sprintf(fullname, "%s/%s", dir, entry->d_name);
+
+			if( file_list != NULL )
+				file_list = strappend(file_list, " ", 1);
+
+			file_list = strappend(file_list, "\"", 1);
+			file_list = strappend(file_list, fullname, strlen(fullname));
+			file_list = strappend(file_list, "\"", 1);
+		}
+
+	}
+	closedir(d);
+
+	if( file_list != NULL && index_name ) {
+
+		char *command = strreplace(indexer_program, "{{index_name}}", index_name);
+		command = strreplace_free(command, "{{hash}}", hash);
+		command = strreplace_free(command, "{{message_file}}", message_file);
+		command = strreplace_free(command, "{{text_files}}", file_list->s);
+
+		printf("EXEC: %s\n", command);
+		system(command);
+
+		cb_free(file_list);
+	}
+
+	//Cleanup index files anyway
+	d = opendir(dir);
+	if( d != NULL ) {
+		while ((entry = readdir(d)) != NULL) {
+
+			if( strstr(entry->d_name, index_file_prefix) == entry->d_name ) {
+				char fullname[4096];
+				sprintf(fullname, "%s/%s", dir, entry->d_name);
+				unlink(fullname);
+			}
+
+		}
+		closedir(d);
+	}
+
+	free(index_file_prefix);
+	free(dir);
+}
+
+
+/**
  * Calls mailparser program, reads filename of created file from program output.
  * 
  */
@@ -249,6 +346,10 @@ int parse_message(char *filename, char *out_filename) {
 
 	char *command = strreplace(parser_program, "{{input_file}}", filename);
 	command = strreplace_free(command, "{{output_file}}", out_filename);
+
+	char index_files_prefix[512];
+	sprintf(index_files_prefix, "%s-index", create_files_prefix);
+	command = strreplace_free(command, "{{index_text_files_prefix}}", index_files_prefix);
 
 	//printf("EXEC: %s\n", command);
 	int r = system(command);
@@ -350,7 +451,7 @@ void add_message(int argc, char *argv[]) {
 		exit(EX_IOERR);
 	}
 
-	char *parsed_file = temp_filename("parsed", ".msg");
+	char *parsed_file = temp_filename(create_files_prefix, ".msg");
 	if( parse_message(message_file, parsed_file) != 0 ) {
 		fprintf(stderr, "Parser call failed: %s\n", message_file);
 		exit(EX_IOERR);
@@ -361,13 +462,17 @@ void add_message(int argc, char *argv[]) {
 
 		add_parts_to_archive(message);
 
-		char *tmp_filename = temp_filename("archive", ".msg");
+		char *tmp_filename = temp_filename(create_files_prefix, ".msg");
 		save_message(message, tmp_filename);
 
 		char *hash = add_file_to_archive(tmp_filename, ".msg");
 		if( hash != NULL ) {
+
+			index_message(hash, tmp_filename);
+
 			printf("%s\n", hash);
 			free(hash);
+
 		}
 
 		unlink(tmp_filename);
@@ -394,6 +499,9 @@ int main(int argc, char *argv[]) {
 
 	//Create seed for rand() used in file_util.c for example.
 	srand(time(NULL));
+
+	create_files_prefix = malloc(254);
+	sprintf(create_files_prefix, "%i-%X", rand(), arc4random());
 
 	char *cmd = argv[optind];
 
