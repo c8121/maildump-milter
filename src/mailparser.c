@@ -269,6 +269,9 @@ void save_part(struct message_line *start, struct message_line *end, struct file
 
 		if( strcasestr(create_text_files_from, fd->filename_suffix) != NULL ) {
 
+			if( show_result_filename_only != 1 )
+				printf("    Saving text content to: %s\n", fd->text_filename);
+
 			char cat_program[4096];
 			sprintf(cat_program, cat_program_tpl, working_dir, fd->filename_suffix);
 
@@ -485,30 +488,7 @@ int main(int argc, char *argv[]) {
 		exit(EX_IOERR);
 	}
 
-	FILE *fp = fopen(message_file, "r");
-	if( fp == NULL ) {
-		fprintf(stderr, "Failed to open file: %s\n", message_file);
-		exit(EX_IOERR);
-	}
-
-	struct message_line *message = NULL;
-	struct message_line *curr_line = NULL; 
-	char line[MAX_LINE_LENGTH];
-	int line_number = 0;
-	while(fgets(line, sizeof(line), fp)) {
-
-		if( message == NULL ) {
-			message = message_line_create(NULL, line);
-			curr_line = message;
-		} else {
-			curr_line = message_line_create(curr_line, line);
-		}
-
-		curr_line->line_number = ++line_number;
-	}
-
-	fclose(fp);
-
+	struct message_line *message = read_message(message_file);
 	if( message != NULL ) {
 		find_parts(message, &export_part_content, show_result_filename_only == 1 ? 0 : 1);
 		save_message(message);

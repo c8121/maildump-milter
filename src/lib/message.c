@@ -84,3 +84,35 @@ void message_line_free_item(void *l) {
 void message_line_free(struct message_line *start) {
 	linked_item_free(start, &message_line_free_item);
 }
+
+/**
+ * Caller must free result using message_line_free(...)
+ */
+struct message_line *read_message(char *filename) {
+
+	FILE *fp = fopen(filename, "r");
+	if( fp == NULL ) {
+		fprintf(stderr, "Failed to open file: %s\n", filename);
+		return NULL;
+	}
+
+	struct message_line *message = NULL;
+	struct message_line *curr_line = NULL; 
+	char line[MAX_LINE_LENGTH];
+	int line_number = 0;
+	while(fgets(line, sizeof(line), fp)) {
+
+		if( message == NULL ) {
+			message = message_line_create(NULL, line);
+			curr_line = message;
+		} else {
+			curr_line = message_line_create(curr_line, line);
+		}
+
+		curr_line->line_number = ++line_number;
+	}
+
+	fclose(fp);
+
+	return message;
+}

@@ -168,6 +168,13 @@ int main(int argc, char *argv[]) {
 	}
 	printf("Reading metadata/fields from: %s\n", email_file);
 
+	struct message_line *message = read_message(email_file);
+	if( message == NULL ) {
+		exit(EX_IOERR);
+	}
+	message_line_free(message);
+	
+	
 	struct char_buffer *buf = NULL;
 	char *text_file;
 	for( int i=4 ; i < argc ; i++ ) {

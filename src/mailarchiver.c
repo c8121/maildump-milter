@@ -356,30 +356,7 @@ void add_message(int argc, char *argv[]) {
 		exit(EX_IOERR);
 	}
 
-	FILE *fp = fopen(parsed_file, "r");
-	if( fp == NULL ) {
-		fprintf(stderr, "Failed to open file: %s\n", parsed_file);
-		exit(EX_IOERR);
-	}
-
-	struct message_line *message = NULL;
-	struct message_line *curr_line = NULL; 
-	char line[MAX_LINE_LENGTH];
-	int line_number = 0;
-	while(fgets(line, sizeof(line), fp)) {
-
-		if( message == NULL ) {
-			message = message_line_create(NULL, line);
-			curr_line = message;
-		} else {
-			curr_line = message_line_create(curr_line, line);
-		}
-
-		curr_line->line_number = ++line_number;
-	}
-
-	fclose(fp);
-
+	struct message_line *message = read_message(parsed_file);
 	if( message != NULL ) {
 
 		add_parts_to_archive(message);
