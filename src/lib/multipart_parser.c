@@ -70,11 +70,6 @@ char* get_header_value(char *name, struct message_line *part) {
 		if( strncasecmp(name, curr->s, strlen(name)) == 0 ) {
 			//Begin of header
 			value = strstr(curr->s, ":");
-			if( value != NULL ) {
-				//LTrim
-				while( value[0] == ':' || value[0] == ' ' )
-					value++;
-			}
 		} else if ( result != NULL ) {
 			if(curr->s[0] == ' ' || curr->s[0] == '\t')
 				value = curr->s; //Next line of header
@@ -83,6 +78,9 @@ char* get_header_value(char *name, struct message_line *part) {
 		}
 
 		if( value != NULL ) {
+			//LTrim
+			while( value[0] == ':' || value[0] == ' ' || value[0] == '\t' || value[0] == '\r' || value[0] == '\n' )
+				value++;
 			if( result == NULL ) {
 				result = malloc(strlen(value)+1);
 				strcpy(result, value);
@@ -143,12 +141,12 @@ char* get_header_attribute(char *name, char *header_value) {
 		case '\'':
 			//Ignore
 			break;
-			
+
 		case ';':
 			//End of value
 			end_reached = 1;
 			break;
-			
+
 		default:
 			*o++ = *p;
 		}
