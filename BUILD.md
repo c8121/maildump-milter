@@ -4,6 +4,7 @@
 
  * libmilter-dev
  * libbsd-dev
+ * curl
  
 ### Optional 
 

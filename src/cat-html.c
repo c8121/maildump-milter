@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 	char *filename = get_valid_filename(argc, argv);
 	char *command = strreplace(htmltotext_program, "{{input_file}}", filename);
 
-	printf("EXEC: %s\n", command);
+	//printf("EXEC: %s\n", command);
 	int r = system(command);
 	free(command);
 

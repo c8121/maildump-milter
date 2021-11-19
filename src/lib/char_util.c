@@ -17,17 +17,91 @@
  * Author: christian c8121 de
  */
 
+#define CHAR_BUFFER_INITIAL_SIZE 4096
+#define CHAR_BUFFER_MAX_MALLOC_SIZE 409600
+
 struct char_buffer {
 	char *s;
-	struct char_buffer *next;
+	size_t len;
+	size_t avail;
+};
+
+
+/**
+ * @param cb can be NULL
+ * 
+ * Caller must free result (use cb_free(*cb))
+ */
+struct char_buffer *strappend(struct char_buffer *cb, char *s, size_t len) {
+	
+	struct char_buffer *buffer;
+	
+	if( *s && len < 1 ) //If size is omitted, determine size
+		len = strlen(s);
+	
+	if( cb == NULL ) {
+		
+		buffer = malloc(sizeof(struct char_buffer));
+		
+		size_t malloc_size = CHAR_BUFFER_INITIAL_SIZE;
+		if( malloc_size < (len +1) )
+			malloc_size = len + 1;
+		
+		buffer->s = malloc(CHAR_BUFFER_INITIAL_SIZE);
+		buffer->len = 0;
+		buffer->avail = CHAR_BUFFER_INITIAL_SIZE;
+		
+	} else {
+		buffer= cb;
+	}
+	
+	
+	if( buffer->avail < (buffer->len + len +1) ) {
+		
+		size_t malloc_size = (buffer->avail + len) * 4;
+		if( malloc_size > CHAR_BUFFER_MAX_MALLOC_SIZE )
+			malloc_size = CHAR_BUFFER_MAX_MALLOC_SIZE;
+			
+		if( malloc_size < (buffer->len + len +1) )
+			malloc_size = buffer->len + len + 1;
+			
+		char *tmp = malloc(malloc_size);
+		memcpy(tmp, buffer->s, buffer->len);
+		free(buffer->s);
+		buffer->s = tmp;
+		
+		buffer->avail = malloc_size;
+	}
+	
+	memcpy(buffer->s + buffer->len, s, len);
+	buffer->len += len;
+	*(buffer->s + buffer->len) = '\0';
+	
+	return buffer;
+}
+
+/**
+ * 
+ */
+void cb_free(struct char_buffer *cb) {
+	if( cb->s != NULL )
+		free(cb->s);
+	free(cb);
+}
+
+
+
+struct char_list_item {
+	char *s;
+	struct char_list_item *next;
 };
 
 /**
  * 
  */
-struct char_buffer *__cb_append(struct char_buffer *prev, char *s) {
+struct char_list_item *__cl_append(struct char_list_item *prev, char *s) {
 
-	struct char_buffer *result = malloc(sizeof(struct char_buffer));
+	struct char_list_item *result = malloc(sizeof(struct char_list_item));
 	if( s != NULL ) {
 		result->s = malloc(strlen(s)+1);
 		strcpy(result->s, s);
@@ -46,10 +120,10 @@ struct char_buffer *__cb_append(struct char_buffer *prev, char *s) {
 /**
  * 
  */
-void __cb_free(struct char_buffer *cb) {
+void __cl_free(struct char_list_item *cb) {
 
-	struct char_buffer *curr = cb;
-	struct char_buffer *cb_free;
+	struct char_list_item *curr = cb;
+	struct char_list_item *cb_free;
 	while( curr != NULL ) {
 		cb_free = curr;
 		curr = curr->next;
@@ -63,10 +137,10 @@ void __cb_free(struct char_buffer *cb) {
 /**
  * 
  */
-char *__cb_string(struct char_buffer *cb) {
+char *__cl_string(struct char_list_item *cb) {
 
 	size_t size = 0;
-	struct char_buffer *curr = cb;
+	struct char_list_item *curr = cb;
 	while( curr != NULL ) {
 
 		if( curr->s != NULL ) {
@@ -101,8 +175,8 @@ char* strreplace(char *s, char *f, char *r) {
 	if( !s || !f )
 		return NULL;
 
-	struct char_buffer *result = NULL;
-	struct char_buffer *curr = NULL;
+	struct char_list_item *result = NULL;
+	struct char_list_item *curr = NULL;
 
 	size_t f_len = strlen(f);
 	size_t r_len = strlen(r);
@@ -116,10 +190,10 @@ char* strreplace(char *s, char *f, char *r) {
 		strcpy(tmp + (p - last), r);
 
 		if( result == NULL ) {
-			result = __cb_append(NULL, tmp);
+			result = __cl_append(NULL, tmp);
 			curr = result;
 		} else {
-			curr = __cb_append(curr, tmp);
+			curr = __cl_append(curr, tmp);
 		}
 
 		p += f_len;
@@ -127,13 +201,13 @@ char* strreplace(char *s, char *f, char *r) {
 	}
 
 	if( result == NULL ) {
-		result = __cb_append(NULL, last);
+		result = __cl_append(NULL, last);
 	} else {
-		__cb_append(curr, last);
+		__cl_append(curr, last);
 	}
 
-	char *sresult = __cb_string(result);
-	__cb_free(result);
+	char *sresult = __cl_string(result);
+	__cl_free(result);
 
 	return sresult;
 }
