@@ -123,8 +123,15 @@ char* get_header_value(char *name, struct message_line *part) {
  */
 char* decode_header_value(char *header_value, int remove_newline, int free_header_value) {
 
+	if( header_value == NULL )
+		return NULL;
+	
 	char *result;
 	mu_rfc2047_decode("utf-8", header_value, &result);
+	if( result == NULL ) {
+		result = malloc(strlen(header_value)+1);
+		strcpy(result, header_value);
+	}
 
 	if( free_header_value )
 		free(header_value);

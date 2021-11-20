@@ -76,6 +76,9 @@ struct char_buffer *append_file(struct char_buffer *cb, char *filename) {
  */
 char *json_string(char *s) {
 
+	if( s == NULL )
+		return NULL;
+	
 	char *p = s;
 	char *o = s;
 	char last = '\0';
@@ -174,11 +177,11 @@ int main(int argc, char *argv[]) {
 	if( message == NULL ) {
 		exit(EX_IOERR);
 	}
-
+	
 	char *from = decode_header_value(get_header_value("From", message), 1, 1);
 	char *to = decode_header_value(get_header_value("To", message), 1, 1);
 	char *subject = decode_header_value(get_header_value("Subject", message), 1, 1);
-
+	
 	message_line_free(message);
 
 

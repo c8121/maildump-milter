@@ -179,7 +179,7 @@ char* strreplace(char *s, char *f, char *r) {
 	struct char_list_item *curr = NULL;
 
 	size_t f_len = strlen(f);
-	size_t r_len = strlen(r);
+	size_t r_len = r != NULL ? strlen(r) : 0;
 
 	char *last = s;
 	char *p = s;
@@ -187,7 +187,10 @@ char* strreplace(char *s, char *f, char *r) {
 
 		char tmp[p - last + r_len + 1];
 		strncpy(tmp, last, p - last);
-		strcpy(tmp + (p - last), r);
+		if( r != NULL )
+			strcpy(tmp + (p - last), r);
+		else
+			tmp[p - last] = '\0';
 
 		if( result == NULL ) {
 			result = __cl_append(NULL, tmp);
