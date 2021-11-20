@@ -22,6 +22,8 @@
 
 #define _GNU_SOURCE //to enable strcasestr(...)
 
+#define JSON_VALUE_MAX_LENGTH 32000
+
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
@@ -84,6 +86,12 @@ char *json_string(char *s) {
 	char last = '\0';
 
 	while( *p ) {
+		
+		if( (o - s) > JSON_VALUE_MAX_LENGTH ) {
+			*o = '\0';
+			break;
+		}
+		
 		switch( *p ) {
 		case ' ':
 		case '\t':
