@@ -273,7 +273,7 @@ void save_part(struct message_line *start, struct message_line *end, struct file
 
 	if( create_text_files ) {
 
-		if( strcasestr(create_text_files_from, fd->filename_suffix) != NULL ) {
+		if( fd->filename_suffix && strcasestr(create_text_files_from, fd->filename_suffix) != NULL ) {
 
 			if( show_result_filename_only != 1 )
 				printf("    Saving text content to: %s\n", fd->text_filename);
@@ -408,6 +408,8 @@ struct file_description* get_file_description(struct message_line *part) {
 			strcpy(fd->filename_suffix, "html");
 		} else if( strcasestr(content_type, "application/pdf") != NULL ) {
 			strcpy(fd->filename_suffix, "pdf");
+		} else if( strcasestr(content_type, "message/rfc822") != NULL ) {
+					strcpy(fd->filename_suffix, "eml");
 		} else if( strcasestr(content_type, "image/jpg") != NULL || strcasestr(content_type, "image/jpeg") != NULL ) {
 			strcpy(fd->filename_suffix, "jpg");
 		} else if( strcasestr(content_type, "image/gif") != NULL ) {
