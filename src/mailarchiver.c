@@ -312,7 +312,7 @@ void index_message(char *hash, char *message_file) {
 		command = strreplace_free(command, "{{message_file}}", message_file);
 		command = strreplace_free(command, "{{text_files}}", file_list->s);
 
-		printf("EXEC: %s\n", command);
+		//printf("EXEC: %s\n", command);
 		system(command);
 
 		cb_free(file_list);
