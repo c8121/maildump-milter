@@ -68,16 +68,16 @@ struct char_buffer *append_file(struct char_buffer *cb, char *filename) {
 }
 
 /**
- * Create json-encoded value (not suitable for other purposes as chars will be deleted)
+ * Create json-encoded value (not suitable for other purposes as chars will be deleted).
+ * Modifies *s directly.
  * 
- * Caller must free result 
+ * Retuns *s
+ *  
  */
 char *json_string(char *s) {
 
-	char *result = malloc(strlen(s)+1);
-
 	char *p = s;
-	char *o = result;
+	char *o = s;
 	char last = '\0';
 
 	while( *p ) {
@@ -118,7 +118,7 @@ char *json_string(char *s) {
 	}
 	*o = '\0';
 
-	return result;
+	return s;
 }
 
 
@@ -197,21 +197,18 @@ int main(int argc, char *argv[]) {
 		buf = strappend(buf, " ", 1);
 	}
 
-	char *body = json_string(buf->s);
-
 	char *json = strreplace(json_tpl->s, "{{id}}", id);
-	json = strreplace(json, "{{from}}", from);
-	json = strreplace(json, "{{to}}", to);
-	json = strreplace(json, "{{subject}}", subject);
-	json = strreplace(json, "{{body}}", body);
-	printf("%s\n", json);
+	json = strreplace(json, "{{from}}", json_string(from));
+	json = strreplace(json, "{{to}}", json_string(to));
+	json = strreplace(json, "{{subject}}", json_string(subject));
+	json = strreplace(json, "{{body}}", json_string(buf->s));
+	//printf("%s\n", json);
 
 	char *command = strreplace(add_doc_program, "{{collection}}", collection);
 	command = strreplace_free(command, "{{json}}", json);
 
 	system(command);
 
-	free(body);
 	free(command);
 	free(json);
 	cb_free(json_tpl);
