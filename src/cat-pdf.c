@@ -29,8 +29,9 @@ char *pdftotext_program = "pdftotext -enc UTF-8 \"{{input_file}}\" -";
  */
 int main(int argc, char *argv[]) {
 
-	char *filename = get_valid_filename(argc, argv);
-	char *command = strreplace(pdftotext_program, "{{input_file}}", filename);
+	configure(argc, argv);
+	
+	char *command = strreplace(pdftotext_program, "{{input_file}}", cat_util_inputfile);
 
 	//printf("EXEC: %s\n", command);
 	int r = system(command);

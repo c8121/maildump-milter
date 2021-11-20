@@ -41,6 +41,7 @@
 struct file_description {
 
 	char content_type[255];
+	char charset[64];
 	char original_filename[4096];	//original file from header
 	char filename_suffix[512];		//suffix determindes from content-type or from original file name (txt, pdf, html...)
 	char encoding[255];				//transfer encoding (base64, quoted-printable, 7bit)
@@ -58,7 +59,7 @@ int show_result_filename_only = 0;
 
 int create_text_files = 0;
 char *create_text_files_from = "html pdf doc";
-char *cat_program_tpl = "%s/cat-%s \"{{input_file}}\" > \"{{output_file}}\"";
+char *cat_program_tpl = "%s/cat-%s \"{{charset}}\" \"{{input_file}}\" > \"{{output_file}}\"";
 
 char *working_dir = NULL;
 int last_file_num = 0;
@@ -281,9 +282,11 @@ void save_part(struct message_line *start, struct message_line *end, struct file
 			char cat_program[4096];
 			sprintf(cat_program, cat_program_tpl, working_dir, fd->filename_suffix);
 
-			char *command = strreplace(cat_program, "{{input_file}}", fd->filename);
+			char *command = strreplace(cat_program, "{{charset}}", fd->charset);
+			command = strreplace_free(command, "{{input_file}}", fd->filename);
 			command = strreplace_free(command, "{{output_file}}", fd->text_filename);
 
+			//printf("EXEC: %s\n", command);
 			struct stat file_stat;
 			if( system(command) !=0 || stat(fd->text_filename, &file_stat) != 0 ) {
 				fprintf(stderr, "Failed to create text file: %s\n", fd->filename);
@@ -373,6 +376,7 @@ struct file_description* get_file_description(struct message_line *part) {
 
 	struct file_description *fd = malloc(sizeof(struct file_description));
 	fd->filename[0] = '\0';
+	fd->charset[0] = '\0';
 	fd->original_filename[0] = '\0';
 	fd->filename_suffix[0] = '\0';
 	fd->encoding[0] = '\0';
@@ -391,6 +395,12 @@ struct file_description* get_file_description(struct message_line *part) {
 			//Don't save multipart-container.
 			free(fd);
 			return NULL;
+		}
+		
+		char *charset = get_header_attribute("charset", content_type);
+		if( charset != NULL ) {
+			strcpy(fd->charset, charset);
+			free(charset);
 		}
 
 		char *name = get_header_attribute("name", content_type);

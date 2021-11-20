@@ -17,31 +17,36 @@
  * Author: christian c8121 de
  */
 
+char *cat_util_charset;
+char *cat_util_inputfile;
+
 /**
  * 
  */
 void usage() {
 	printf("Usage of cat-utils (prints out plain text of a document):\n");
-	printf("cat-* <input filename>\n");
+	printf("cat-* <charset> <input filename>\n");
 }
 
 /**
- * 
+ * Load arguments into 
+ *   cat_util_charset
+ *   cat_util_inputfile
  */
-char *get_valid_filename(int argc, char *argv[]) {
+void configure(int argc, char *argv[]) {
 
-	if( argc < 2 ) {
+	if( argc < 3 ) {
 		fprintf(stderr, "Missing argument\n");
 		usage();
 		exit(EX_USAGE);
 	}
-
-	char *filename = argv[1];
+	
+	cat_util_charset = argv[1];
+	
+	cat_util_inputfile = argv[2];
 	struct stat file_stat;
-	if( stat(filename, &file_stat) != 0 ) {
-		fprintf(stderr, "File not found: %s\n", filename);
+	if( stat(cat_util_inputfile, &file_stat) != 0 ) {
+		fprintf(stderr, "File not found: %s\n", cat_util_inputfile);
 		exit(EX_USAGE);
 	}
-
-	return filename;
 }

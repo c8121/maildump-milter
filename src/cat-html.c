@@ -13,6 +13,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE //to enable strcasestr(...)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
@@ -22,16 +24,22 @@
 #include "./lib/cat_util.c"
 #include "./lib/char_util.c"
 
-char *htmltotext_program = "html2text -utf8 -nometa -style pretty \"{{input_file}}\"";
+char *htmltotext_program = "html2text {{charset_param}} -nometa -style pretty \"{{input_file}}\"";
 
 /**
  * 
  */
 int main(int argc, char *argv[]) {
 
-	char *filename = get_valid_filename(argc, argv);
-	char *command = strreplace(htmltotext_program, "{{input_file}}", filename);
+	configure(argc, argv);
+		
+	char *command = strreplace(htmltotext_program, "{{input_file}}", cat_util_inputfile);
 
+	if( strcasestr(cat_util_charset, "utf") != NULL )
+		command = strreplace_free(command, "{{charset_param}}", "-utf8");
+	else
+		command = strreplace_free(command, "{{charset_param}}", "");
+	
 	//printf("EXEC: %s\n", command);
 	int r = system(command);
 	free(command);
