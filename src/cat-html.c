@@ -22,7 +22,7 @@
 #include "./lib/cat_util.c"
 #include "./lib/char_util.c"
 
-char *htmltotext_program = "html2text -style pretty \"{{input_file}}\"";
+char *htmltotext_program = "html2text -utf8 -nometa -style pretty \"{{input_file}}\"";
 
 /**
  * 
