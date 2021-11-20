@@ -57,6 +57,7 @@ gcc -o "$binDir/archive" "$sourceDir/archive.c" -lbsd
 gcc -o "$binDir/mailarchiver" "$sourceDir/mailarchiver.c" -lbsd
 
 echo "cat-* utils"
+gcc -o "$binDir/cat-txt" "$sourceDir/cat-txt.c"
 gcc -o "$binDir/cat-dog" "$sourceDir/cat-dog.c"
 gcc -o "$binDir/cat-doc" "$sourceDir/cat-doc.c"
 gcc -o "$binDir/cat-pdf" "$sourceDir/cat-pdf.c"

@@ -58,7 +58,7 @@ char *part_text_filename_prefix = "message-part-text";
 int show_result_filename_only = 0;
 
 int create_text_files = 0;
-char *create_text_files_from = "html pdf doc";
+char *create_text_files_from = "html pdf doc txt"; //For consistent behaviour provide event text content as seperate text file
 char *cat_program_tpl = "%s/cat-%s \"{{charset}}\" \"{{input_file}}\" > \"{{output_file}}\"";
 
 char *working_dir = NULL;
@@ -274,7 +274,7 @@ void save_part(struct message_line *start, struct message_line *end, struct file
 
 	if( create_text_files ) {
 
-		if( fd->filename_suffix && strcasestr(create_text_files_from, fd->filename_suffix) != NULL ) {
+		if( strcasestr(create_text_files_from, fd->filename_suffix) != NULL ) {
 
 			if( show_result_filename_only != 1 )
 				printf("    Saving text content to: %s\n", fd->text_filename);
@@ -289,7 +289,7 @@ void save_part(struct message_line *start, struct message_line *end, struct file
 			//printf("EXEC: %s\n", command);
 			struct stat file_stat;
 			if( system(command) !=0 || stat(fd->text_filename, &file_stat) != 0 ) {
-				fprintf(stderr, "Failed to create text file: %s\n", fd->filename);
+				fprintf(stderr, "Failed to create text file: %s\n", fd->text_filename);
 			}
 		}
 	}
@@ -328,11 +328,15 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 
 		struct message_line *start_free = (struct message_line*)content_start->list.next;
 		if( start_free != end ) {	
-			struct message_line *end_free = (struct message_line*)end->list.prev;
-			end_free->list.next = NULL;
+
+			if( end != NULL ) {
+				struct message_line *end_free = (struct message_line*)end->list.prev;
+				end_free->list.next = NULL;
+			}
 
 			content_start->list.next = (void*)end;
-			end->list.prev = (void*)content_start;
+			if( end != NULL ) 
+				end->list.prev = (void*)content_start;
 
 			message_line_free(start_free);
 		}
@@ -396,7 +400,7 @@ struct file_description* get_file_description(struct message_line *part) {
 			free(fd);
 			return NULL;
 		}
-		
+
 		char *charset = get_header_attribute("charset", content_type);
 		if( charset != NULL ) {
 			strcpy(fd->charset, charset);
@@ -419,7 +423,7 @@ struct file_description* get_file_description(struct message_line *part) {
 		} else if( strcasestr(content_type, "application/pdf") != NULL ) {
 			strcpy(fd->filename_suffix, "pdf");
 		} else if( strcasestr(content_type, "message/rfc822") != NULL ) {
-					strcpy(fd->filename_suffix, "eml");
+			strcpy(fd->filename_suffix, "eml");
 		} else if( strcasestr(content_type, "image/jpg") != NULL || strcasestr(content_type, "image/jpeg") != NULL ) {
 			strcpy(fd->filename_suffix, "jpg");
 		} else if( strcasestr(content_type, "image/gif") != NULL ) {
@@ -429,6 +433,12 @@ struct file_description* get_file_description(struct message_line *part) {
 		} else if ( !fd->filename_suffix ) {
 			strcpy(fd->filename_suffix, "bin");
 		}
+	} else {
+		
+		//If message has not content-type header, treat it as text
+		strcpy(fd->content_type, "text/plain");
+		strcpy(fd->filename_suffix, "txt");
+		
 	}
 
 	if( !fd->original_filename || !fd->filename_suffix ) {
@@ -508,15 +518,15 @@ int main(int argc, char *argv[]) {
 
 	struct message_line *message = read_message(message_file);
 	if( message != NULL ) {
-		
+
 		//Message itself
-		export_part_content(message, linked_item_last(message));
-		
+		export_part_content(message, NULL);
+
 		//Parts
 		find_parts(message, &export_part_content, show_result_filename_only == 1 ? 0 : 1);
-		
+
 		save_message(message);
-		
+
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
 	}
