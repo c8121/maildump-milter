@@ -30,8 +30,6 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
-#include <mailutils/mime.h>
-
 #include "./lib/char_util.c"
 #include "../lib/sntools/src/lib/linked_items.c"
 #include "./lib/message.c"
@@ -176,11 +174,9 @@ int main(int argc, char *argv[]) {
 		exit(EX_IOERR);
 	}
 
-	char *from = get_header_value("From", message);
-	char *to = get_header_value("To", message);
-	char *subject_enc = get_header_value("Subject", message);
-	char *subject;
-	mu_rfc2047_decode("utf-8", subject_enc, &subject);
+	char *from = decode_header_value(get_header_value("From", message), 1, 1);
+	char *to = decode_header_value(get_header_value("To", message), 1, 1);
+	char *subject = decode_header_value(get_header_value("Subject", message), 1, 1);
 
 	message_line_free(message);
 

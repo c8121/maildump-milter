@@ -17,6 +17,13 @@
  * Author: christian c8121 de
  */
 
+
+#include <mailutils/mime.h>
+
+
+/**
+ * 
+ */
 int is_empty_line(char *s) {
 	if( s[0] == '\r' || s[0] == '\n' || s[0] == '\0' ) {
 		return 1;
@@ -108,6 +115,36 @@ char* get_header_value(char *name, struct message_line *part) {
 
 	return result;
 }
+
+/**
+ * @param free_header_value If true, then given header_value will bre free'd
+ * 
+ * Caller must free result
+ */
+char* decode_header_value(char *header_value, int remove_newline, int free_header_value) {
+
+	char *result;
+	mu_rfc2047_decode("utf-8", header_value, &result);
+
+	if( free_header_value )
+		free(header_value);
+
+	if( remove_newline ) {
+		char *p = result;
+		char *o = result;
+		while( *p ) {
+			if( *p == '\r' || *p == '\n' ) {
+				p++;
+			} else {
+				*o++ = *p++;
+			}
+		}
+	}
+
+	return result;
+
+}
+
 
 /**
  * Caller must free result

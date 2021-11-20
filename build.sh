@@ -46,8 +46,8 @@ gcc -o "$binDir/mailforward" "$sourceDir/mailforward.c"
 
 
 echo "Build mailparser & mailassembler"
-gcc -o "$binDir/mailparser" "$sourceDir/mailparser.c"
-gcc -o "$binDir/mailassembler" "$sourceDir/mailassembler.c"
+gcc -o "$binDir/mailparser" "$sourceDir/mailparser.c" -lmailutils
+gcc -o "$binDir/mailassembler" "$sourceDir/mailassembler.c" -lmailutils
 
 echo "Build mailindexer"
 gcc -o "$binDir/mailindexer-solr" "$sourceDir/mailindexer-solr.c" -lmailutils
