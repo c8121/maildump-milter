@@ -116,6 +116,7 @@ char *json_string(char *s) {
 			break;
 		}
 	}
+	*o = '\0';
 
 	return result;
 }
@@ -203,7 +204,7 @@ int main(int argc, char *argv[]) {
 	json = strreplace(json, "{{to}}", to);
 	json = strreplace(json, "{{subject}}", subject);
 	json = strreplace(json, "{{body}}", body);
-	//printf("%s\n", json);
+	printf("%s\n", json);
 
 	char *command = strreplace(add_doc_program, "{{collection}}", collection);
 	command = strreplace_free(command, "{{json}}", json);
