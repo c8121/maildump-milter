@@ -508,8 +508,15 @@ int main(int argc, char *argv[]) {
 
 	struct message_line *message = read_message(message_file);
 	if( message != NULL ) {
+		
+		//Message itself
+		export_part_content(message, linked_item_last(message));
+		
+		//Parts
 		find_parts(message, &export_part_content, show_result_filename_only == 1 ? 0 : 1);
+		
 		save_message(message);
+		
 	} else {
 		fprintf(stderr, "Ignore empty file\n");
 	}
