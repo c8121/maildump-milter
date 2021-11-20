@@ -200,6 +200,10 @@ char* get_header_attribute(char *name, char *header_value) {
 void find_parts(struct message_line *message, void (*handle_part_function)(void *start, void *end), int verbose) {
 
 	struct message_line *part_begin = NULL;
+
+	char curr_header_name[MAX_LINE_LENGTH];
+	curr_header_name[0] = '\0';
+
 	char curr_boundary[MAX_LINE_LENGTH+3];
 	curr_boundary[0] = '\0';
 
@@ -213,7 +217,7 @@ void find_parts(struct message_line *message, void (*handle_part_function)(void 
 			if( verbose > 0 )
 				printf("%i HEADER> %s", curr->line_number, curr->s);
 
-			if( curr->s[0] == '\r' || curr->s[0] == '\n' || curr->s[0] == '\0' ) {
+			if( is_empty_line(curr->s) ) {
 
 				if( verbose > 0 )
 					printf("%i END-OF-HEADERS\n\n", curr->line_number);
@@ -221,24 +225,35 @@ void find_parts(struct message_line *message, void (*handle_part_function)(void 
 
 			} else {
 
-				char *p = strstr(curr->s, "boundary");
-				if( p != NULL ) {
-					p = strstr(p, "=");
+				if(curr->s[0] != ' ' && curr->s[0] != '\t') {
+					char *p = strchr(curr->s, ':');
 					if( p != NULL ) {
-						p++;
-						char *e = __last_non_whitespace(p);
-						if( e != NULL ) {
-							if( e[0] == ';' )
-								e--;
-							if( p[0] == '"' && e[0] == '"' ) {
-								p++;
-								e--;
-							}
-							strncpy(curr_boundary, p, strlen(p));
-							curr_boundary[e-p+1] = '\0';
+						strcpy(curr_header_name, curr->s);
+						curr_header_name[p - curr->s] = '\0';
+						//printf("%i HEADER-NAME> \"%s\"\n", curr->line_number, curr_header_name);
+					}
+				}
 
-							if( verbose > 0 )
-								printf("%i *BOUNDARY> %s\n", curr->line_number, curr_boundary);
+				if( strcasecmp(curr_header_name, "Content-Type") == 0 ) {
+					char *p = strcasestr(curr->s, "boundary");
+					if( p != NULL ) {
+						p = strstr(p, "=");
+						if( p != NULL ) {
+							p++;
+							char *e = __last_non_whitespace(p);
+							if( e != NULL ) {
+								if( e[0] == ';' )
+									e--;
+								if( p[0] == '"' && e[0] == '"' ) {
+									p++;
+									e--;
+								}
+								strncpy(curr_boundary, p, strlen(p));
+								curr_boundary[e-p+1] = '\0';
+
+								if( verbose > 0 )
+									printf("%i *BOUNDARY> %s\n", curr->line_number, curr_boundary);
+							}
 						}
 					}
 				}
