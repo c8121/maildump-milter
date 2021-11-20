@@ -35,7 +35,7 @@
 #include "./lib/message.c"
 #include "./lib/multipart_parser.c"
 
-char *add_doc_program = "curl -X POST -H 'Content-Type: application/json' 'http://localhost:8983/solr/{{collection}}/update/json/docs' --data-binary '{{json}}'";
+char *add_doc_program = "curl -s -X POST -H 'Content-Type: application/json' 'http://localhost:8983/solr/{{collection}}/update/json/docs' --data-binary '{{json}}'";
 char *add_doc_json_tpl = "./config/solr-add-mail.tpl.json";
 
 /**
