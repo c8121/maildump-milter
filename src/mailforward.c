@@ -72,22 +72,26 @@ int send_file(const char *filePath) {
 	// check if the given file has headers and body.
 	struct message_line *header = NULL;
 	struct message_line *body = NULL;
+	int header_line_count = 0;
 	int body_line_count = 0;
 	char line[MAX_LINE_LENGTH];
 	struct message_line *read_into = NULL;
 	while(fgets(line, sizeof(line), fp)) {
-
+		
 		if( header == NULL ) {
 			header = message_line_create(NULL, line);
 			read_into = header;
 		} else if( body == NULL && is_empty_line(line) ) {
 			body = message_line_create(NULL, line);
 			read_into = body;
-			body_line_count++;
 		} else {
 			read_into = message_line_create(read_into, line);
-			body_line_count++;
 		}
+
+		if( body == NULL )
+			header_line_count++;
+		else
+			body_line_count++;
 		
 		//read up to 3 body lines here
 		//rest will be read in smtp dialog below
@@ -96,8 +100,8 @@ int send_file(const char *filePath) {
 		}
 	}
 
-	if( body_line_count == 0 ) {
-		fprintf(stderr, "Message does not seem to have headers or body (%i body lines)\n", body_line_count);
+	if( header_line_count == 0 || body_line_count == 0 ) {
+		fprintf(stderr, "Message does not seem to have headers or body (%i header lines, %i body lines)\n", header_line_count, body_line_count);
 		fclose(fp);
 		exit(EX_DATAERR);
 	}
@@ -142,11 +146,11 @@ int send_file(const char *filePath) {
 		// Send header which has been read above
 		struct message_line *curr = header;
 		while( curr != NULL ) {
-			write(socket, curr->s, strlen(curr->s));
+			smtp_write(socket, curr->s);
 			curr = curr->next;
 		}
 		message_line_free(header);
-
+		
 		// Send body which has been read above
 		curr = body;
 		while( curr != NULL ) {
@@ -176,6 +180,7 @@ int send_file(const char *filePath) {
 	}
 
 	fclose(fp);
+	
 	return 0;
 }
 
