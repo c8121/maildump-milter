@@ -35,7 +35,6 @@
 
 #include "./lib/char_util.c"
 #include "./lib/file_util.c"
-#include "../lib/sntools/src/lib/linked_items.c"
 #include "./lib/message.c"
 
 #define MAX_LINE_LENGTH 1024
@@ -155,7 +154,7 @@ void get_parts_from_archive(struct message_line *message) {
 			free(dest_filename);
 		}
 
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 }
 
@@ -235,7 +234,7 @@ void add_parts_to_archive(struct message_line *message) {
 			unlink(filename);
 		}
 
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 }
 
@@ -253,7 +252,7 @@ void save_message(struct message_line *start, char *filename) {
 	struct message_line *curr = start;
 	while( curr != NULL ) {
 		fwrite(curr->s, 1, strlen(curr->s), fp);
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 
 	fclose(fp);

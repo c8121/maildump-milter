@@ -30,7 +30,6 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
-#include "../lib/sntools/src/lib/linked_items.c"
 #include "./lib/message.c"
 #include "./lib/base64.c"
 #include "./lib/qp.c"
@@ -176,7 +175,7 @@ void qp_decode_save(struct message_line *start, struct message_line *end, FILE *
 			qp_decode_chunk(buf, curr->s);
 		}
 
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 
 	fwrite(buf->s, 1, strlen(buf->s), fp);
@@ -210,7 +209,7 @@ void base64_decode_save(struct message_line *start, struct message_line *end, FI
 			base64_append_chunk(buf, curr->s, strlen(curr->s));
 		}
 
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 
 	base64_decode_chunk(buf, NULL, 0);
@@ -241,7 +240,7 @@ void undecoded_save(struct message_line *start, struct message_line *end, FILE *
 			fwrite(curr->s, 1, strlen(curr->s), fp);
 		}
 
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 
 }
@@ -316,7 +315,7 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 			content_start = curr;
 		}
 
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 
 	if( content_start != NULL ) {
@@ -326,17 +325,17 @@ void replace_content(struct message_line *start, struct message_line *end, struc
 		sprintf(reference, ref_format, fd->filename);
 		message_line_set_s(content_start, reference);
 
-		struct message_line *start_free = (struct message_line*)content_start->list.next;
+		struct message_line *start_free = content_start->next;
 		if( start_free != end ) {	
 
 			if( end != NULL ) {
-				struct message_line *end_free = (struct message_line*)end->list.prev;
-				end_free->list.next = NULL;
+				struct message_line *end_free = end->prev;
+				end_free->next = NULL;
 			}
 
-			content_start->list.next = (void*)end;
+			content_start->next = end;
 			if( end != NULL ) 
-				end->list.prev = (void*)content_start;
+				end->prev = content_start;
 
 			message_line_free(start_free);
 		}
@@ -360,7 +359,7 @@ void save_message(struct message_line *start) {
 	struct message_line *curr = start;
 	while( curr != NULL ) {
 		fwrite(curr->s, 1, strlen(curr->s), fp);
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 
 	fclose(fp);

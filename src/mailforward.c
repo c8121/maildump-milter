@@ -13,9 +13,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
+/*
  * Author: christian c8121 de
  */
+
+#define _GNU_SOURCE //to enable strcasestr(...)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,9 +32,10 @@
 #include <netdb.h> 
 #include <sysexits.h>
 
-#include "../lib/sntools/src/lib/net_util.c"
-#include "../lib/sntools/src/lib/smtp_socket_util.c"
-#include "../lib/sntools/src/lib/linked_items.c"
+#include "./lib/message.c"
+#include "./lib/multipart_parser.c"
+#include "./lib/net_util.c"
+
 
 char *smtpHost;
 int smtpPort;
@@ -44,13 +47,7 @@ int ignoreFilesYoungerSeconds = 60;
 char *addExtensionBeforeForward = ".tmp";
 char *addExtensionOnSuccess = ".archived";
 
-#define MAX_LINE_SIZE 255
-
-struct buffer_line {
-	struct linked_item list;
-	char s[MAX_LINE_SIZE];
-};
-
+#define MAX_LINE_LENGTH 1024
 
 /**
  * 
@@ -73,35 +70,34 @@ int send_file(const char *filePath) {
 
 	// As we are sending a file as it is right after the SMTP DATA command, 
 	// check if the given file has headers and body.
-	struct buffer_line *header = NULL;
-	struct buffer_line *body = NULL;
-	char line[255];
-	struct buffer_line *read_into = NULL;
+	struct message_line *header = NULL;
+	struct message_line *body = NULL;
+	int body_line_count = 0;
+	char line[MAX_LINE_LENGTH];
+	struct message_line *read_into = NULL;
 	while(fgets(line, sizeof(line), fp)) {
 
 		if( header == NULL ) {
-			header = linked_item_create(NULL, sizeof(struct buffer_line));
+			header = message_line_create(NULL, line);
 			read_into = header;
-		} else if( body == NULL && (line[0] == '\r' || line[0] == '\n') ) {
-			body = linked_item_create(NULL, sizeof(struct buffer_line));
+		} else if( body == NULL && is_empty_line(line) ) {
+			body = message_line_create(NULL, line);
 			read_into = body;
+			body_line_count++;
 		} else {
-			read_into = linked_item_create(read_into, sizeof(struct buffer_line));
+			read_into = message_line_create(read_into, line);
+			body_line_count++;
 		}
-
-		strcpy(read_into->s, line);
-
+		
 		//read up to 3 body lines here
 		//rest will be read in smtp dialog below
-		if( body != NULL && linked_item_count(body) > 3 ) {
+		if( body_line_count > 3 ) {
 			break;
 		}
 	}
 
-	int header_lines = linked_item_count(header);
-	int body_lines = linked_item_count(body);
-	if( header_lines == 0 || body_lines == 0 ) {
-		fprintf(stderr, "Message does not seem to have headers or body (%i header lines, %i body lines)\n", header_lines, body_lines);
+	if( body_line_count == 0 ) {
+		fprintf(stderr, "Message does not seem to have headers or body (%i body lines)\n", body_line_count);
 		fclose(fp);
 		exit(EX_DATAERR);
 	}
@@ -144,20 +140,20 @@ int send_file(const char *filePath) {
 		}
 
 		// Send header which has been read above
-		struct buffer_line *curr = header;
+		struct message_line *curr = header;
 		while( curr != NULL ) {
 			write(socket, curr->s, strlen(curr->s));
-			curr = (struct buffer_line *) curr->list.next;
+			curr = curr->next;
 		}
-		linked_item_free(header, NULL);
+		message_line_free(header);
 
 		// Send body which has been read above
 		curr = body;
 		while( curr != NULL ) {
 			smtp_write(socket, curr->s);
-			curr = (struct buffer_line *) curr->list.next;
+			curr = curr->next;
 		}
-		linked_item_free(body, NULL);
+		message_line_free(body);
 
 		// Send rest of body directly from file
 		while(fgets(line, sizeof(line), fp)) {

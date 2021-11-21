@@ -33,7 +33,6 @@
 #include <sys/stat.h>
 
 #include "./lib/char_util.c"
-#include "../lib/sntools/src/lib/linked_items.c"
 #include "./lib/message.c"
 #include "./lib/multipart_parser.c"
 

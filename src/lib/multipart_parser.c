@@ -103,7 +103,7 @@ char* get_header_value(char *name, struct message_line *part) {
 		if( is_empty_line(curr->s) )
 			break;
 
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 
 	if( result != NULL ) {
@@ -295,7 +295,7 @@ void find_parts(struct message_line *message, void (*handle_part_function)(void 
 						if( verbose > 0 )
 							printf("%i *FIRST> %s\n", curr->line_number, curr_boundary);
 
-						part_begin = (struct message_line*)curr->list.next;
+						part_begin = curr->next;
 					} else {
 
 						if( verbose > 0 )	
@@ -303,12 +303,12 @@ void find_parts(struct message_line *message, void (*handle_part_function)(void 
 
 						(*handle_part_function)(part_begin, curr);
 
-						part_begin = (struct message_line*)curr->list.next;
+						part_begin = curr->next;
 					}
 				}
 			}
 		}
 
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 }

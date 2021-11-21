@@ -32,7 +32,6 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
-#include "../lib/sntools/src/lib/linked_items.c"
 #include "./lib/message.c"
 #include "./lib/base64.c"
 #include "./lib/qp.c"
@@ -205,7 +204,7 @@ void find_file_references(void *start, void *end) {
 			replace_content(curr, encoding, filename);
 		}
 
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 }
 
@@ -223,7 +222,7 @@ void save_message(struct message_line *start, char *filename) {
 	struct message_line *curr = start;
 	while( curr != NULL ) {
 		fwrite(curr->s, 1, strlen(curr->s), fp);
-		curr = (struct message_line*)curr->list.next;
+		curr = curr->next;
 	}
 
 	fclose(fp);

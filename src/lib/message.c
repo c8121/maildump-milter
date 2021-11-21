@@ -24,9 +24,10 @@
  * Represents one line from a message file
  */
 struct message_line {
-	struct linked_item list;
 	char *s;
 	int line_number;
+	struct message_line *prev;
+	struct message_line *next;
 };
 
 /**
@@ -49,12 +50,25 @@ void message_line_set_s(struct message_line *line, char *s) {
 }
 
 /**
- * 
+ * Caller must free result using message_line_free(...)
  */
 void* message_line_create(struct message_line *prev, char *s) {
 
-	struct message_line *line = linked_item_create(prev, sizeof(struct message_line));
+	struct message_line *line = malloc(sizeof(struct message_line));
 	line->s = NULL;
+	line->line_number = 0;
+
+	line->prev = NULL;
+	line->next = NULL;
+
+	if( prev != NULL ) {
+		if( prev->next != NULL ) {
+			line->next = prev->next;
+			prev->next->prev = line;
+		}
+		prev->next = line;
+		line->prev = prev;
+	}
 
 	message_line_set_s(line, s);
 
@@ -64,25 +78,20 @@ void* message_line_create(struct message_line *prev, char *s) {
 /**
  * 
  */
-void __message_line_free_item(struct message_line *l) {
-	if( l->s != NULL ) {
-		free(l->s);
-		l->s = NULL;
-	}
-}
-
-/**
- * 
- */
-void message_line_free_item(void *l) {
-	__message_line_free_item(l);
-}
-
-/**
- * 
- */
 void message_line_free(struct message_line *start) {
-	linked_item_free(start, &message_line_free_item);
+
+	struct message_line *curr = start;
+	struct message_line *free_item;
+	while( curr != NULL ) {
+
+		free_item = curr;
+		curr = curr->next;
+
+		if( free_item->s != NULL )
+			free(free_item->s);
+
+		free(free_item);
+	}
 }
 
 /**

@@ -29,20 +29,8 @@ done
 gcc -o "$binDir/maildump" "$sourceDir/maildump.c" $REQUIRE -pthread -lbsd
 
 
-
-if [[ ! -d "$BASE/lib/sntools" ]] ; then
-	echo "Pull sntools"
-	if [[ ! -d "$BASE/lib" ]] ; then
-		mkdir "$BASE/lib"
-	fi
-	cd "$BASE/lib"
-	git clone https://github.com/c8121/sntools.git
-	cd "$BASE"
-fi
-
-
 echo "Build mailforwarder"
-gcc -o "$binDir/mailforward" "$sourceDir/mailforward.c" 
+gcc -o "$binDir/mailforward" "$sourceDir/mailforward.c" -lmailutils
 
 
 echo "Build mailparser & mailassembler"
