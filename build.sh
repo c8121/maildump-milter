@@ -42,6 +42,7 @@ gcc -o "$binDir/mailindexer-solr" "$sourceDir/mailindexer-solr.c" -lmailutils
 
 echo "Build archive & mailarchiver"
 gcc -o "$binDir/archive" "$sourceDir/archive.c" -lbsd
+#gcc -o "$binDir/archivemeta" "$sourceDir/archivemeta.c" -lmariadb
 gcc -o "$binDir/mailarchiver" "$sourceDir/mailarchiver.c" -lbsd
 
 echo "cat-* utils"
