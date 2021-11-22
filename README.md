@@ -33,7 +33,7 @@ Requirements
     apt install libmilter-dev
     apt install libbsd-dev
     apt install libmailutils-dev
-    apt install libmariadb-dev
+    apt install default-libmysqlclient-dev
     apt install curl
 
 Optional:

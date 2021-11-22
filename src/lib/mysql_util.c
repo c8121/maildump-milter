@@ -21,6 +21,32 @@
 /**
 *
 */
-MYSQL *mysql_connect(char *host, char *db, char *user, char *pwd) {
+MYSQL *db_connect(char *host, char *user, char *pwd, char *db, unsigned int port) {
 
+	MYSQL *c = mysql_init(NULL);
+	if( c == NULL ) {
+		fprintf(stderr, "%s\n", mysql_error(c));
+		return NULL;
+	}
+	
+	if( mysql_real_connect(c, host, user, pwd, db, port, NULL, 0) == 0 )  {
+		fprintf(stderr, "%s\n", mysql_error(c));
+		mysql_close(c);
+		return NULL;
+	}
+
+}
+
+/**
+ * 
+ */
+void db_close(void *c) {
+	mysql_close(c);
+}
+
+/**
+ * 
+ */
+const char *db_error(void *c) {
+	return mysql_error(c);
 }

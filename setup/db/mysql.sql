@@ -1,10 +1,15 @@
 CREATE DATABASE archive;
 USE archive;
 
+/* 
+ Example how to create a user:
+ CREATE USER 'archive'@'localhost' IDENTIFIED BY '<insert-password-here>';
+ GRANT ALL PRIVILEGES ON archive.* to 'archive'@'localhost';
+*/
+
 CREATE TABLE `ENTRY` (
 	`ID` int(11) NOT NULL AUTO_INCREMENT,
 	`HASH` char(64) NOT NULL,
-	`OWNER` varchar(254) DEFAULT NULL,
 	`NAME` varchar(254) DEFAULT NULL,
 	`ARRIVED` datetime DEFAULT NULL,
 	PRIMARY KEY (`ID`),
@@ -15,6 +20,7 @@ CREATE TABLE `ENTRY_ORIGIN` (
 	`ID` int(11) NOT NULL AUTO_INCREMENT,
 	`ENTRY` int(11) NOT NULL,
 	`ORIGIN` text DEFAULT NULL,
+	`OWNER` varchar(254) DEFAULT NULL,
 	`CTIME` datetime DEFAULT NULL,
 	`MTIME` datetime DEFAULT NULL,
 	PRIMARY KEY (`ID`),

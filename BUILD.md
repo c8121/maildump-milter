@@ -5,7 +5,7 @@
  * libmilter-dev
  * libbsd-dev
  * libmailutils-dev
- * libmariadb-dev
+ * default-libmysqlclient-dev
  * curl
  
 ### Optional 
