@@ -38,6 +38,121 @@ const char *db_error(void *c) {
 }
 
 /**
+ * Caller must free result
+ */
+char* iso_to_utf(char *s) {
+
+	size_t len = strlen(s);
+
+	unsigned char *out = malloc(len * 2 +1);
+
+	unsigned char *end = s + len;
+	unsigned char *p = s;
+	unsigned char *o = out;
+	while( *p && p < end ) {
+		if (*p < 128)
+			*o++ = *p++;
+		else {
+			*o++ = 0xc2+(*p > 0xbf);
+			*o++ = (*p++ & 0x3f) + 0x80;
+		}
+	}
+	*o = '\0';
+
+	return out;
+}
+
+/**
+ * Return 1 = valid, 0 = invalid
+ */
+int check_invalid_utf8_seq(char *s, char replace) {
+
+	if( s == NULL )
+		return 1;
+
+	int result = 1;
+
+	size_t len = strlen(s);
+	unsigned char *end = s + len;
+	unsigned char *p = s;
+	int code_length;
+	while( *p && p < end ) {
+
+		if( *p > 0x7F ) {
+
+			if( *p >= 0xC2 && *p <= 0xDF ) {
+				code_length = 2;
+			} else if ( *p >= 0xE0 && *p <= 0xEF ) {
+				code_length = 3;
+			} else if ( *p >= 0xF0 && *p <= 0xF4 ) {
+				code_length = 4;
+			} else {
+				//invalid first byte
+				if( replace != 0 )
+					*p = '?';
+				code_length = 1;
+				result = 0;
+			}
+
+			if( code_length > 1 ) {
+				if( p + code_length >= end ) {
+					//incomplete byte sequence
+					if( replace != 0 )
+						*p = '?';
+					code_length = 1;
+					result = 0;
+				} else {
+					int valid = 1;
+					for( int i=1 ; i < code_length ; i++ ) {
+						if( (*(p+i) & 0xC0) != 0x80 ) {
+							//invalid continuation bytes: bit 7 should be set, bit 6 should be unset (b10xxxxxx)
+							valid = 0;
+						}
+					}
+					if( !valid ) {
+						if( replace != 0 )
+							*p = '?';
+						code_length = 1;
+						result = 0;
+					}
+				}
+			}
+
+			p += code_length;
+
+		} else {
+			p++;
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Caller must free result
+ */
+char *validate_string(char *s) {
+
+	char *result;
+
+	if( check_invalid_utf8_seq(s, 0) == 0 ) {
+
+		result = iso_to_utf(s);
+		//If converting did not work out?
+		if( check_invalid_utf8_seq(result, '?') == 0 )
+			fprintf(stderr, "Failed to convert ISO to UTF\n");	
+
+	} else {
+
+		result = malloc(strlen(s)+1);
+		strcpy(result, s);
+
+	}
+
+	return result;
+}
+
+/**
  *
  */
 MYSQL *db_connect(char *host, char *user, char *pwd, char *db, unsigned int port) {
@@ -169,6 +284,8 @@ int get_entry(char *hash, struct a_entry *entry) {
  */
 int add_entry(char *hash, char *name) {
 
+	char *valid_name = validate_string(name);
+
 	if( db_add_entry_stmt == NULL ) {
 		db_add_entry_stmt = mysql_stmt_init(db);
 		int r = mysql_stmt_prepare(
@@ -191,9 +308,9 @@ int add_entry(char *hash, char *name) {
 	p[0].length = &hash_length;
 	p[0].is_null = 0;
 
-	unsigned long name_length = strlen(name);
+	unsigned long name_length = strlen(valid_name);
 	p[1].buffer_type = MYSQL_TYPE_STRING;
-	p[1].buffer = name;
+	p[1].buffer = valid_name;
 	p[1].length = &name_length;
 	p[1].is_null = 0;
 
@@ -210,6 +327,7 @@ int add_entry(char *hash, char *name) {
 	unsigned long id = mysql_stmt_insert_id(db_add_entry_stmt);
 
 	mysql_stmt_free_result(db_add_entry_stmt);
+	free(valid_name);
 
 	return id;
 }
@@ -221,6 +339,9 @@ int add_entry(char *hash, char *name) {
  * Returns ID on success, 0 on failure 
  */
 int add_entry_origin(unsigned long id, char *origin, char *owner, char *c_time, char *m_time) {
+
+	char *valid_origin = validate_string(origin);
+	char *valid_owner = validate_string(owner);
 
 	if( db_add_entry_origin_stmt == NULL ) {
 		db_add_entry_origin_stmt = mysql_stmt_init(db);
@@ -241,14 +362,14 @@ int add_entry_origin(unsigned long id, char *origin, char *owner, char *c_time, 
 	p[0].buffer_type = MYSQL_TYPE_LONG;
 	p[0].buffer = &id;
 
-	unsigned long origin_length = strlen(origin);
+	unsigned long origin_length = strlen(valid_origin);
 	p[1].buffer_type = MYSQL_TYPE_STRING;
-	p[1].buffer = origin;
+	p[1].buffer = valid_origin;
 	p[1].length = &origin_length;
 
-	unsigned long owner_length = strlen(owner);
+	unsigned long owner_length = strlen(valid_owner);
 	p[2].buffer_type = MYSQL_TYPE_STRING;
-	p[2].buffer = owner;
+	p[2].buffer = valid_owner;
 	p[2].length = &owner_length;
 
 	unsigned long ctime_length = strlen(c_time);
@@ -274,6 +395,8 @@ int add_entry_origin(unsigned long id, char *origin, char *owner, char *c_time, 
 	unsigned long origin_id = mysql_stmt_insert_id(db_add_entry_origin_stmt);
 
 	mysql_stmt_free_result(db_add_entry_origin_stmt);
+	free(valid_origin);
+	free(valid_owner);
 
 	return origin_id;
 }
