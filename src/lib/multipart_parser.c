@@ -146,6 +146,7 @@ char* decode_header_value(char *header_value, int remove_newline, int free_heade
 				*o++ = *p++;
 			}
 		}
+		*o = '\0';
 	}
 
 	return result;
