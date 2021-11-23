@@ -36,6 +36,7 @@
 #include "./lib/char_util.c"
 #include "./lib/file_util.c"
 #include "./lib/message.c"
+#include "./lib/multipart_parser.c"
 
 #define MAX_LINE_LENGTH 1024
 
@@ -46,9 +47,10 @@ char *password_file = NULL;
 char *add_to_archive_program = "./bin/archive -n -s \"{{suffix}}\" -p \"{{password_file}}\" add \"{{input_file}}\"";
 char *copy_from_archive_program = "./bin/archive  -s \"{{suffix}}\" -p \"{{password_file}}\" copy {{hash}} \"{{output_file}}\"";
 
+char *archivemetadb_program ="./bin/archivemetadb add {{hash}} \"{{subject}}\" \"{{from}}\" \"{{to}}\"";
+
 char *index_name = NULL;
 char *indexer_program ="./bin/mailindexer-solr {{index_name}} {{hash}} {{message_file}} {{text_files}}";
-
 
 char *create_files_prefix;
 
@@ -275,7 +277,7 @@ void index_message(char *hash, char *message_file) {
 	char *dir = malloc(strlen(message_file));
 	strncpy(dir, message_file, p-message_file);
 	dir[p-message_file] = '\0';
-	
+
 
 	DIR *d = opendir(dir);
 	if( d == NULL ) {
@@ -334,6 +336,35 @@ void index_message(char *hash, char *message_file) {
 
 	free(index_file_prefix);
 	free(dir);
+}
+
+/**
+ * 
+ */
+void add_message_to_archivedb(char *hash, struct message_line *message) {
+
+	char *from = decode_header_value(get_header_value("From", message), 1, 1);
+	char *from_adr = extract_address(from);
+
+	char *to = decode_header_value(get_header_value("To", message), 1, 1);
+	char *to_adr = extract_address(to);
+
+	char *subject = decode_header_value(get_header_value("Subject", message), 1, 1);
+
+	char *command = strreplace(archivemetadb_program, "{{hash}}", hash);
+	command = strreplace_free(command, "{{from}}", strreplace(from_adr, "\"", "\\\""));
+	command = strreplace_free(command, "{{to}}", strreplace(to_adr, "\"", "\\\""));
+	command = strreplace_free(command, "{{subject}}", strreplace(subject, "\"", "\\\""));
+	
+	printf("EXEC: %s\n", command);
+	system(command);
+
+	free(command);
+	free(from);
+	free(from_adr);
+	free(to);
+	free(to_adr);
+	free(subject);
 }
 
 
@@ -467,6 +498,7 @@ void add_message(int argc, char *argv[]) {
 		char *hash = add_file_to_archive(tmp_filename, ".msg");
 		if( hash != NULL ) {
 
+			add_message_to_archivedb(hash, message);
 			index_message(hash, tmp_filename);
 
 			printf("%s\n", hash);

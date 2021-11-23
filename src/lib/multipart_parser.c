@@ -125,7 +125,7 @@ char* decode_header_value(char *header_value, int remove_newline, int free_heade
 
 	if( header_value == NULL )
 		return NULL;
-	
+
 	char *result;
 	mu_rfc2047_decode("utf-8", header_value, &result);
 	if( result == NULL ) {
@@ -153,6 +153,48 @@ char* decode_header_value(char *header_value, int remove_newline, int free_heade
 
 }
 
+/**
+ * Extract first mail address out of From-, To, ...-Header
+ * 
+ * Caller must free result
+ */
+char *extract_address(char *header_value) {
+
+	if( header_value == NULL )
+		return NULL;
+
+	char *result = malloc(strlen(header_value) + 1);
+	strcpy(result, header_value);
+
+	char *p = strchr(header_value, '<');
+	if( p != NULL ) {
+		char *e = strchr(p, '>');
+		if( e != NULL ) {
+			strcpy(result, p+1);
+			result[e - p - 1] = '\0';
+		}
+	}
+
+	//Find spaces, use token containing @
+	p = result;
+	while( p < (result + strlen(result)) ) {
+		
+		char *e = strchr(p, ' ');
+		if( e == NULL ) 
+			e = p + strlen(p);
+
+		char *at = strchr(p, '@');
+		if( at != NULL && at < e ) {
+			strcpy(result, p);
+			result[e - p] = '\0';
+			break;
+		}
+		
+		p = e+1;
+	}
+
+	return result;
+}
 
 /**
  * Caller must free result
