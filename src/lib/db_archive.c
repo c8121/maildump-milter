@@ -17,38 +17,12 @@
  * Author: christian c8121 de
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sysexits.h>
+#define A_MAX_LENGTH_HASH 64
+#define A_MAX_LENGTH_NAME 4096
 
-#include "./lib/db_archive.c"
+struct a_entry{
+	unsigned long id;
+	char hash[A_MAX_LENGTH_HASH];
+	char name[A_MAX_LENGTH_NAME];
+};
 
-char *db_host = "localhost";
-unsigned int db_port = 0;
-char *db_user = "archive";
-char *db_pwd = NULL;
-char *db_name = "archive";
-
-#include "./lib/mysql_util.c"
-
-
-
-/**
- * 
- */
-int main(int argc, char *argv[]) {
-
-	db_open();
-
-	if( add_entry("hash", "test") != 0 ) {
-		exit(EX_IOERR);
-	}
-	
-	struct a_entry *e = malloc(sizeof(struct a_entry));
-	get_entry("hash", e);
-
-	db_close_all();
-
-
-}

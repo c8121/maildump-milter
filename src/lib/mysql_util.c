@@ -21,7 +21,7 @@
 
 void *db;
 
-char *db_get_entry_sql = "SELECT NAME FROM ENTRY WHERE HASH=?;";
+char *db_get_entry_sql = "SELECT ID, NAME FROM ENTRY WHERE HASH=?;";
 MYSQL_STMT *db_get_entry_stmt = NULL;
 
 char *db_add_entry_sql = "INSERT INTO ENTRY(HASH, NAME) VALUES(?,?);";
@@ -91,7 +91,7 @@ void db_close_all() {
 /**
  * 
  */
-int get_entry(char *hash) {
+int get_entry(char *hash, struct a_entry *entry) {
 
 	if( db_get_entry_stmt == NULL ) {
 		db_get_entry_stmt = mysql_stmt_init(db);
@@ -125,13 +125,18 @@ int get_entry(char *hash) {
 		return -1;
 	}
 
-	MYSQL_BIND r[1];
+	memset(entry, 0, sizeof(entry));
+	
+	MYSQL_BIND r[2];
 	memset(r, 0, sizeof(r));
 
-	char name[4096];
-	r[0].buffer_type = MYSQL_TYPE_STRING;
-	r[0].buffer = &name;
-	r[0].buffer_length = 4096;
+	r[0].buffer_type = MYSQL_TYPE_LONG;
+	r[0].buffer = &entry->id;
+	r[0].buffer_length = sizeof(unsigned long);
+
+	r[1].buffer_type = MYSQL_TYPE_STRING;
+	r[1].buffer = &entry->name;
+	r[1].buffer_length = A_MAX_LENGTH_NAME;
 
 	if( mysql_stmt_bind_result(db_get_entry_stmt, r) != 0 ) {
 		fprintf(stderr, "%s\n", db_error(db));
@@ -143,14 +148,11 @@ int get_entry(char *hash) {
 		return -1;
 	}
 
-	int s;
-	while( 1 ) {
-		s = mysql_stmt_fetch(db_get_entry_stmt);
-		if( s == MYSQL_NO_DATA || s != 0 )
-			break;
-
-		printf(" - %s NAME=\"%s\"\n", hash, name);
+	int s = mysql_stmt_fetch(db_get_entry_stmt);
+	if( s == 0 ) {
+		printf(" - %li %s NAME=\"%s\"\n", entry->id, hash, entry->name);
 	}
+
 
 	mysql_stmt_free_result(db_get_entry_stmt);
 
