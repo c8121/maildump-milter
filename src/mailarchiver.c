@@ -356,7 +356,7 @@ void add_message_to_archivedb(char *hash, struct message_line *message) {
 	command = strreplace_free(command, "{{to}}", strreplace(to_adr, "\"", "\\\""));
 	command = strreplace_free(command, "{{subject}}", strreplace(subject, "\"", "\\\""));
 	
-	printf("EXEC: %s\n", command);
+	//printf("EXEC: %s\n", command);
 	system(command);
 
 	free(command);

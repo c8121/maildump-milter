@@ -104,11 +104,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	char *name = argv[optind + 2];
-	if( !*name ) {
-		fprintf(stderr, "Name cannot be empty\n");
-		usage();
-		exit(EX_USAGE);
-	}
 
 	char *origin = argv[optind + 3];
 	if( !*origin ) {
