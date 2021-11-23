@@ -46,7 +46,7 @@ char m_time[20] = "";
  */
 void usage() {
 	printf("Usage:\n");
-	printf("    archivemeta add <hash> <origin> <owner>\n");
+	printf("    archivemeta add [-c <created datetime>] [-m <modified datetime>] <hash> <name> <origin> <owner>\n");
 
 }
 
@@ -62,6 +62,7 @@ void configure(int argc, char *argv[]) {
 		switch(c) {
 
 		case 'c':
+
 			if(strlen(optarg) > (sizeof(c_time) - 1)) {
 				fprintf(stderr, "Invalid ctime\n");
 				exit(EX_USAGE);
@@ -87,7 +88,7 @@ int main(int argc, char *argv[]) {
 
 	configure(argc, argv);
 
-	if (argc - optind +1 < 5) {
+	if (argc - optind +1 < 6) {
 		fprintf(stderr, "Missing arguments\n");
 		usage();
 		exit(EX_USAGE);
@@ -102,14 +103,21 @@ int main(int argc, char *argv[]) {
 		exit(EX_USAGE);
 	}
 
-	char *origin = argv[optind + 2];
+	char *name = argv[optind + 2];
+	if( !*name ) {
+		fprintf(stderr, "Name cannot be empty\n");
+		usage();
+		exit(EX_USAGE);
+	}
+
+	char *origin = argv[optind + 3];
 	if( !*origin ) {
 		fprintf(stderr, "Origin cannot be empty\n");
 		usage();
 		exit(EX_USAGE);
 	}
 
-	char *owner = argv[optind + 3];
+	char *owner = argv[optind + 4];
 	if( !*owner ) {
 		fprintf(stderr, "Owner cannot be empty\n");
 		usage();
@@ -119,7 +127,7 @@ int main(int argc, char *argv[]) {
 	if( strcasecmp(cmd, "add") == 0 ) {
 
 		int exit_c = 0;
-		
+
 		db_open();
 
 		struct a_entry *e = malloc(sizeof(struct a_entry));
@@ -130,7 +138,7 @@ int main(int argc, char *argv[]) {
 
 		} else {
 
-			unsigned long id = add_entry(hash, origin);
+			unsigned long id = add_entry(hash, name);
 			if( id == 0 ) {
 
 				fprintf(stderr, "Failed to add hash (%li)\n", id);
