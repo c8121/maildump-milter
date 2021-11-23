@@ -27,6 +27,8 @@ MYSQL_STMT *db_get_entry_stmt = NULL;
 char *db_add_entry_sql = "INSERT INTO ENTRY(HASH, NAME) VALUES(?,?);";
 MYSQL_STMT *db_add_entry_stmt = NULL;
 
+char *db_add_entry_origin_sql = "INSERT INTO ENTRY_ORIGIN(ENTRY, ORIGIN, OWNER) VALUES(?,?,?);";
+MYSQL_STMT *db_add_entry_origin_stmt = NULL;
 
 /**
  * 
@@ -89,9 +91,9 @@ void db_close_all() {
 
 
 /**
- * 
+ * Returns 0 on success, -1 in failure, 1 if no data found 
  */
-int get_entry(char *hash, struct a_entry *entry) {
+unsigned long get_entry(char *hash, struct a_entry *entry) {
 
 	if( db_get_entry_stmt == NULL ) {
 		db_get_entry_stmt = mysql_stmt_init(db);
@@ -102,7 +104,7 @@ int get_entry(char *hash, struct a_entry *entry) {
 		);
 		if( r != 0 ) {
 			fprintf(stderr, "%s\n", db_error(db));
-			exit(EX_IOERR);
+			return -1;
 		}
 	}
 
@@ -126,13 +128,12 @@ int get_entry(char *hash, struct a_entry *entry) {
 	}
 
 	memset(entry, 0, sizeof(entry));
-	
+
 	MYSQL_BIND r[2];
 	memset(r, 0, sizeof(r));
 
 	r[0].buffer_type = MYSQL_TYPE_LONG;
 	r[0].buffer = &entry->id;
-	r[0].buffer_length = sizeof(unsigned long);
 
 	r[1].buffer_type = MYSQL_TYPE_STRING;
 	r[1].buffer = &entry->name;
@@ -148,19 +149,23 @@ int get_entry(char *hash, struct a_entry *entry) {
 		return -1;
 	}
 
+	int result = 0;
+
 	int s = mysql_stmt_fetch(db_get_entry_stmt);
-	if( s == 0 ) {
-		printf(" - %li %s NAME=\"%s\"\n", entry->id, hash, entry->name);
+	if( s == MYSQL_NO_DATA ) {
+		result = 1;
+	} else if( s != 0 ) {
+		fprintf(stderr, "mysql_stmt_fetch = %i, %s\n", s, db_error(db));
 	}
 
 
 	mysql_stmt_free_result(db_get_entry_stmt);
 
-	return 0;
+	return result;
 }
 
 /**
- * 
+ * Returns ID on success, -1 in failure 
  */
 int add_entry(char *hash, char *name) {
 
@@ -173,7 +178,7 @@ int add_entry(char *hash, char *name) {
 		);
 		if( r != 0 ) {
 			fprintf(stderr, "%s\n", db_error(db));
-			exit(EX_IOERR);
+			return -1;
 		}
 	}
 
@@ -202,9 +207,62 @@ int add_entry(char *hash, char *name) {
 		return -1;
 	}
 
+	unsigned long id = mysql_stmt_insert_id(db_add_entry_stmt);
+	
 	mysql_stmt_free_result(db_add_entry_stmt);
 
-	return 0;
+	return id;
+}
+
+/**
+ * Returns ID on success, -1 in failure 
+ */
+int add_entry_origin(unsigned long id, char *origin, char *owner) {
+
+	if( db_add_entry_origin_stmt == NULL ) {
+		db_add_entry_origin_stmt = mysql_stmt_init(db);
+		int r = mysql_stmt_prepare(
+				db_add_entry_origin_stmt,
+				db_add_entry_origin_sql,
+				strlen(db_add_entry_origin_sql)
+		);
+		if( r != 0 ) {
+			fprintf(stderr, "%s\n", db_error(db));
+			return -1;
+		}
+	}
+
+	MYSQL_BIND p[3];
+	memset(p, 0, sizeof(p));
+
+	p[0].buffer_type = MYSQL_TYPE_LONG;
+	p[0].buffer = &id;
+
+	unsigned long origin_length = strlen(origin);
+	p[1].buffer_type = MYSQL_TYPE_STRING;
+	p[1].buffer = origin;
+	p[1].length = &origin_length;
+
+	unsigned long owner_length = strlen(owner);
+	p[2].buffer_type = MYSQL_TYPE_STRING;
+	p[2].buffer = owner;
+	p[2].length = &owner_length;
+
+	if( mysql_stmt_bind_param(db_add_entry_origin_stmt, p) != 0 ) {
+		fprintf(stderr, "%s\n", db_error(db));
+		return -1;
+	}
+
+	if( mysql_stmt_execute(db_add_entry_origin_stmt) != 0 ) {
+		fprintf(stderr, "%s\n", db_error(db));
+		return -1;
+	}
+
+	unsigned long origin_id = mysql_stmt_insert_id(db_add_entry_origin_stmt);
+
+	mysql_stmt_free_result(db_add_entry_origin_stmt);
+
+	return origin_id;
 }
 
 
