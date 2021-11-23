@@ -24,7 +24,7 @@
 #include "./lib/cat_util.c"
 #include "./lib/char_util.c"
 
-char *htmltotext_program = "html2text {{charset_param}} -nometa -style pretty \"{{input_file}}\"";
+char *htmltotext_program = "html2text {{charset_param}} -nometa \"{{input_file}}\"";
 
 /**
  * 
