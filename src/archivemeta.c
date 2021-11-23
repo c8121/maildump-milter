@@ -22,47 +22,15 @@
 #include <string.h>
 #include <sysexits.h>
 
-#include <mysql/mysql.h> 
-
-#include "./lib/mysql_util.c"
-
 char *db_host = "localhost";
 unsigned int db_port = 0;
 char *db_user = "archive";
 char *db_pwd = NULL;
 char *db_name = "archive";
 
-void *db;
-
-char *db_get_entry_sql = "SELECT NAME FROM ENTRY WHERE HASH=?;";
-MYSQL_STMT *db_get_entry_stmt = NULL;
-
-char *db_add_entry_sql = "INSERT INTO ENTRY(HASH, NAME) VALUES(?,?);";
-MYSQL_STMT *db_add_entry_stmt = NULL;
+#include "./lib/mysql_util.c"
 
 
-/**
- * 
- */
-void db_open() {
-	db = db_connect(db_host, db_user, db_pwd, db_name, db_port);
-	if( db == NULL )
-		exit(EX_IOERR);
-}
-
-/**
- * 
- */
-void db_close_all() {
-
-	if( db_add_entry_stmt != NULL )
-		mysql_stmt_close(db_add_entry_stmt);
-
-	if( db_get_entry_stmt != NULL )
-		mysql_stmt_close(db_get_entry_stmt);
-
-	db_close(db);
-}
 
 /**
  * 
