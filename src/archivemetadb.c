@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
 
 				} else {
 					
-					printf("Owner: ID=%li, NAME=%s\n", o->id, o->name);
+					//printf("Owner: ID=%li, NAME=%s\n", o->id, o->name);
 
 					struct a_entry_origin *eo = malloc(sizeof(struct a_entry_origin));
 					memset(eo, 0, sizeof(struct a_entry_origin));
@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
 
 					} else {
 
-						printf("Origin: ID=%li, ORIGIN=%s\n", eo->id, eo->origin);
+						//printf("Origin: ID=%li, ORIGIN=%s\n", eo->id, eo->origin);
 
 					}
 				}
