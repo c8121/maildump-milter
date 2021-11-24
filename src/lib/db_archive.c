@@ -17,12 +17,27 @@
  * Author: christian c8121 de
  */
 
-#define A_MAX_LENGTH_HASH 64
-#define A_MAX_LENGTH_NAME 4096
+#define A_MAX_LENGTH_HASH 65
+#define A_MAX_LENGTH_NAME 254
+#define A_MAX_LENGTH_ORIGIN 4069
+
+struct a_owner{
+	unsigned long id;
+	char name[A_MAX_LENGTH_NAME];
+};
 
 struct a_entry{
 	unsigned long id;
 	char hash[A_MAX_LENGTH_HASH];
 	char name[A_MAX_LENGTH_NAME];
+};
+
+struct a_entry_origin{
+	unsigned long id;
+	unsigned long entry_id;
+	unsigned long owner_id;
+	char origin[A_MAX_LENGTH_ORIGIN];
+	char c_time[20];
+	char m_time[20];
 };
 

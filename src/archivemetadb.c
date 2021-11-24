@@ -28,7 +28,8 @@
 
 #define EX_HASH_EXIST 1
 #define EX_HASH_FAILED 2
-#define EX_ORIGIN_FAILED 3
+#define EX_OWNER_FAILED 3
+#define EX_ORIGIN_FAILED 4
 
 char *db_host = "localhost";
 unsigned int db_port = 0;
@@ -126,22 +127,25 @@ int main(int argc, char *argv[]) {
 		db_open();
 
 		struct a_entry *e = malloc(sizeof(struct a_entry));
-		if( get_entry(hash, e) == 0 ) {
+		memset(e, 0, sizeof(struct a_entry));
+		strcpy(e->hash, hash);
+		strcpy(e->name, name); 
 
-			fprintf(stderr, "Hash already exists: ID=%li, NAME=%s\n", e->id, e->name);
+		if( get_entry(e) == 0 ) {
+
+			fprintf(stderr, "Entry: ID=%li, HASH=%s, NAME=%s\n", e->id, e->hash, e->name);
 			exit_c = EX_HASH_EXIST;
 
 		} else {
 
-			unsigned long id = add_entry(hash, name);
-			if( id == 0 ) {
+			if( add_entry(e) != 0 ) {
 
-				fprintf(stderr, "Failed to add hash (%li)\n", id);
+				fprintf(stderr, "Failed to add hash\n");
 				exit_c = EX_HASH_FAILED;
 
 			} else {
 
-				printf("Added Entry: ID=%li\n", id);
+				printf("Entry: ID=%li, HASH=%s, NAME=%s\n", e->id, e->hash, e->name);
 
 				if( !c_time[0] || !m_time[0] ) {
 
@@ -155,16 +159,37 @@ int main(int argc, char *argv[]) {
 						sprintf(m_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
 				}
 
-				unsigned long origin_id = add_entry_origin(id, origin, owner, c_time, m_time);
-				if( origin_id == 0 ) {
+				struct a_owner *o = malloc(sizeof(struct a_owner));
+				memset(o, 0, sizeof(struct a_owner));
+				strcpy(o->name, owner);
+				
+				if( get_create_owner(o) != 0 ) {
 
-					fprintf(stderr, "Failed to add origin (%li)\n", origin_id);
-					exit_c = EX_ORIGIN_FAILED;
+					fprintf(stderr, "Cannot get or create owner\n");
+					exit_c = EX_OWNER_FAILED;
 
 				} else {
+					
+					printf("Owner: ID=%li, NAME=%s\n", o->id, o->name);
 
-					printf("Added Origin: ID=%li\n", origin_id);
+					struct a_entry_origin *eo = malloc(sizeof(struct a_entry_origin));
+					memset(eo, 0, sizeof(struct a_entry_origin));
+					eo->entry_id = e->id;
+					eo->owner_id = o->id;
+					strcpy(eo->origin, origin);
+					strcpy(eo->c_time, c_time);
+					strcpy(eo->m_time, m_time);
+					
+					if( add_entry_origin(eo) != 0 ) {
 
+						fprintf(stderr, "Failed to add origin\n");
+						exit_c = EX_ORIGIN_FAILED;
+
+					} else {
+
+						printf("Origin: ID=%li, ORIGIN=%s\n", eo->id, eo->origin);
+
+					}
 				}
 			}
 		}
