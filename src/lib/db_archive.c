@@ -26,6 +26,11 @@ struct a_owner{
 	char name[A_MAX_LENGTH_NAME];
 };
 
+struct a_origin{
+	unsigned long id;
+	char name[A_MAX_LENGTH_NAME];
+};
+
 struct a_entry{
 	unsigned long id;
 	char hash[A_MAX_LENGTH_HASH];
@@ -36,7 +41,7 @@ struct a_entry_origin{
 	unsigned long id;
 	unsigned long entry_id;
 	unsigned long owner_id;
-	char origin[A_MAX_LENGTH_ORIGIN];
+	unsigned long origin_id;
 	char c_time[20];
 	char m_time[20];
 };

@@ -30,6 +30,7 @@
 #define EX_HASH_FAILED 2
 #define EX_OWNER_FAILED 3
 #define EX_ORIGIN_FAILED 4
+#define EX_ENTRY_ORIGIN_FAILED 5
 
 char *db_host = "localhost";
 unsigned int db_port = 0;
@@ -160,43 +161,55 @@ int main(int argc, char *argv[]) {
 
 					//printf("Owner: ID=%li, NAME=%s\n", o->id, o->name);
 
-					struct a_entry_origin *eo = malloc(sizeof(struct a_entry_origin));
-					memset(eo, 0, sizeof(struct a_entry_origin));
-					eo->entry_id = e->id;
-					eo->owner_id = o->id;
-					strcpy(eo->origin, origin);
+					struct a_origin *or = malloc(sizeof(struct a_origin));
+					memset(or, 0, sizeof(struct a_origin));
+					strcpy(or->name, origin);
 
-					if( !c_time[0] || !m_time[0] ) {
+					if( get_create_origin(or) != 0 ) {
 
-						time_t secs = time(NULL);
-						struct tm *local = localtime(&secs);
-
-						if( !c_time[0] )
-							sprintf(eo->c_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
-						else
-							strcpy(eo->c_time, c_time);
-						
-						if( !m_time[0] )
-							sprintf(eo->m_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
-						else
-							strcpy(eo->m_time, m_time);
-
-					} else {
-
-						strcpy(eo->c_time, c_time);
-						strcpy(eo->m_time, m_time);
-
-					}
-					
-					if( add_entry_origin(eo) != 0 ) {
-
-						fprintf(stderr, "Failed to add origin\n");
+						fprintf(stderr, "Cannot get or create origin\n");
 						exit_c = EX_ORIGIN_FAILED;
 
 					} else {
 
-						//printf("Origin: ID=%li, ORIGIN=%s, CTIME=%s, MTIME=%s\n", eo->id, eo->origin, eo->c_time, eo->m_time);
+						struct a_entry_origin *eo = malloc(sizeof(struct a_entry_origin));
+						memset(eo, 0, sizeof(struct a_entry_origin));
+						eo->entry_id = e->id;
+						eo->owner_id = o->id;
+						eo->origin_id = or->id;
 
+						if( !c_time[0] || !m_time[0] ) {
+
+							time_t secs = time(NULL);
+							struct tm *local = localtime(&secs);
+
+							if( !c_time[0] )
+								sprintf(eo->c_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
+							else
+								strcpy(eo->c_time, c_time);
+
+							if( !m_time[0] )
+								sprintf(eo->m_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
+							else
+								strcpy(eo->m_time, m_time);
+
+						} else {
+
+							strcpy(eo->c_time, c_time);
+							strcpy(eo->m_time, m_time);
+
+						}
+
+						if( add_entry_origin(eo) != 0 ) {
+
+							fprintf(stderr, "Failed to add origin\n");
+							exit_c = EX_ENTRY_ORIGIN_FAILED;
+
+						} else {
+
+							//printf("Origin: ID=%li, ORIGIN=%s, CTIME=%s, MTIME=%s\n", eo->id, eo->origin, eo->c_time, eo->m_time);
+
+						}
 					}
 				}
 			}
