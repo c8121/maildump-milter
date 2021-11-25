@@ -173,9 +173,13 @@ int main(int argc, char *argv[]) {
 
 						if( !c_time[0] )
 							sprintf(eo->c_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
-
+						else
+							strcpy(eo->c_time, c_time);
+						
 						if( !m_time[0] )
 							sprintf(eo->m_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
+						else
+							strcpy(eo->m_time, m_time);
 
 					} else {
 
