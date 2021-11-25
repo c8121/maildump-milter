@@ -19,6 +19,7 @@
 
 
 #include <mailutils/mime.h>
+#include <ctype.h>
 
 
 /**
@@ -192,6 +193,17 @@ char *extract_address(char *header_value) {
 		
 		p = e+1;
 	}
+	
+	//trim
+	p = result;
+	char *o = result;
+	while( *p ) {
+		if( strchr(" \t\r\n,;", *p) )
+			p++;
+		else
+			*o++ = tolower(*p++); 
+	}
+	*o++ = '\0';
 
 	return result;
 }

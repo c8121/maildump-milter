@@ -19,6 +19,8 @@
 
 #include <mysql/mysql.h>
 
+#include "charset_util.c"
+
 void *db;
 
 char *db_get_owner_sql = "SELECT ID, NAME FROM OWNER WHERE NAME=?;";
@@ -43,120 +45,7 @@ const char *db_error(void *c) {
 	return mysql_error(c);
 }
 
-/**
- * Caller must free result
- */
-char* iso_to_utf(char *s) {
 
-	size_t len = strlen(s);
-
-	unsigned char *out = malloc(len * 2 +1);
-
-	unsigned char *end = s + len;
-	unsigned char *p = s;
-	unsigned char *o = out;
-	while( *p && p < end ) {
-		if (*p < 128)
-			*o++ = *p++;
-		else {
-			*o++ = 0xc2+(*p > 0xbf);
-			*o++ = (*p++ & 0x3f) + 0x80;
-		}
-	}
-	*o = '\0';
-
-	return out;
-}
-
-/**
- * Return 1 = valid, 0 = invalid
- */
-int check_invalid_utf8_seq(char *s, char replace) {
-
-	if( s == NULL )
-		return 1;
-
-	int result = 1;
-
-	size_t len = strlen(s);
-	unsigned char *end = s + len;
-	unsigned char *p = s;
-	int code_length;
-	while( *p && p < end ) {
-
-		if( *p > 0x7F ) {
-
-			if( *p >= 0xC2 && *p <= 0xDF ) {
-				code_length = 2;
-			} else if ( *p >= 0xE0 && *p <= 0xEF ) {
-				code_length = 3;
-			} else if ( *p >= 0xF0 && *p <= 0xF4 ) {
-				code_length = 4;
-			} else {
-				//invalid first byte
-				if( replace != 0 )
-					*p = '?';
-				code_length = 1;
-				result = 0;
-			}
-
-			if( code_length > 1 ) {
-				if( p + code_length >= end ) {
-					//incomplete byte sequence
-					if( replace != 0 )
-						*p = '?';
-					code_length = 1;
-					result = 0;
-				} else {
-					int valid = 1;
-					for( int i=1 ; i < code_length ; i++ ) {
-						if( (*(p+i) & 0xC0) != 0x80 ) {
-							//invalid continuation bytes: bit 7 should be set, bit 6 should be unset (b10xxxxxx)
-							valid = 0;
-						}
-					}
-					if( !valid ) {
-						if( replace != 0 )
-							*p = '?';
-						code_length = 1;
-						result = 0;
-					}
-				}
-			}
-
-			p += code_length;
-
-		} else {
-			p++;
-		}
-	}
-
-	return result;
-}
-
-/**
- * Caller must free result
- */
-char *validate_string(char *s) {
-
-	char *result;
-
-	if( check_invalid_utf8_seq(s, 0) == 0 ) {
-
-		result = iso_to_utf(s);
-		//If converting did not work out?
-		if( check_invalid_utf8_seq(result, '?') == 0 )
-			fprintf(stderr, "Failed to convert ISO to UTF\n");	
-
-	} else {
-
-		result = malloc(strlen(s)+1);
-		strcpy(result, s);
-
-	}
-
-	return result;
-}
 
 /**
  *
@@ -239,7 +128,7 @@ int get_owner(struct a_owner *owner) {
 	if( __prepare_stmt(&db_get_owner_stmt, db_get_owner_sql) != 0 )
 		return -1;
 	
-	char *valid_name = validate_string(owner->name);
+	char *valid_name = charset_validate_string(owner->name);
 
 	MYSQL_BIND p[1];
 	memset(p, 0, sizeof(p));
@@ -306,7 +195,7 @@ int add_owner(struct a_owner *owner) {
 	if( __prepare_stmt(&db_add_owner_stmt, db_add_owner_sql) != 0 )
 		return -1;
 
-	char *valid_name = validate_string(owner->name);
+	char *valid_name = charset_validate_string(owner->name);
 
 	MYSQL_BIND p[1];
 	memset(p, 0, sizeof(p));
@@ -413,7 +302,7 @@ int get_entry(struct a_entry *entry) {
  */
 int add_entry(struct a_entry *entry) {
 
-	char *valid_name = validate_string(entry->name);
+	char *valid_name = charset_validate_string(entry->name);
 
 	if( __prepare_stmt(&db_add_entry_stmt, db_add_entry_sql) != 0 )
 		return -1;
@@ -455,7 +344,7 @@ int add_entry(struct a_entry *entry) {
  */
 int add_entry_origin(struct a_entry_origin *origin) {
 
-	char *valid_origin = validate_string(origin->origin);
+	char *valid_origin = charset_validate_string(origin->origin);
 
 	if( __prepare_stmt(&db_add_entry_origin_stmt, db_add_entry_origin_sql) != 0 )
 		return -1;
