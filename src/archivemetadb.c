@@ -147,29 +147,17 @@ int main(int argc, char *argv[]) {
 
 				printf("Entry: ID=%li, HASH=%s, NAME=%s\n", e->id, e->hash, e->name);
 
-				if( !c_time[0] || !m_time[0] ) {
-
-					time_t secs = time(NULL);
-					struct tm *local = localtime(&secs);
-
-					if( !c_time[0] )
-						sprintf(c_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
-
-					if( !m_time[0] )
-						sprintf(m_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
-				}
-
 				struct a_owner *o = malloc(sizeof(struct a_owner));
 				memset(o, 0, sizeof(struct a_owner));
 				strcpy(o->name, owner);
-				
+
 				if( get_create_owner(o) != 0 ) {
 
 					fprintf(stderr, "Cannot get or create owner\n");
 					exit_c = EX_OWNER_FAILED;
 
 				} else {
-					
+
 					//printf("Owner: ID=%li, NAME=%s\n", o->id, o->name);
 
 					struct a_entry_origin *eo = malloc(sizeof(struct a_entry_origin));
@@ -177,8 +165,24 @@ int main(int argc, char *argv[]) {
 					eo->entry_id = e->id;
 					eo->owner_id = o->id;
 					strcpy(eo->origin, origin);
-					strcpy(eo->c_time, c_time);
-					strcpy(eo->m_time, m_time);
+
+					if( !c_time[0] || !m_time[0] ) {
+
+						time_t secs = time(NULL);
+						struct tm *local = localtime(&secs);
+
+						if( !c_time[0] )
+							sprintf(eo->c_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
+
+						if( !m_time[0] )
+							sprintf(eo->m_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
+
+					} else {
+
+						strcpy(eo->c_time, c_time);
+						strcpy(eo->m_time, m_time);
+
+					}
 					
 					if( add_entry_origin(eo) != 0 ) {
 
@@ -187,7 +191,7 @@ int main(int argc, char *argv[]) {
 
 					} else {
 
-						//printf("Origin: ID=%li, ORIGIN=%s\n", eo->id, eo->origin);
+						//printf("Origin: ID=%li, ORIGIN=%s, CTIME=%s, MTIME=%s\n", eo->id, eo->origin, eo->c_time, eo->m_time);
 
 					}
 				}

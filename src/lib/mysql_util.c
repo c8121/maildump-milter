@@ -362,11 +362,11 @@ int add_entry_origin(struct a_entry_origin *origin) {
 	p[2].buffer = valid_origin;
 	p[2].buffer_length = strlen(valid_origin);
 
-	p[3].buffer_type = MYSQL_TYPE_DATETIME;
+	p[3].buffer_type = MYSQL_TYPE_STRING;
 	p[3].buffer = &origin->c_time;
 	p[3].buffer_length = strlen(origin->c_time);
 
-	p[4].buffer_type = MYSQL_TYPE_DATETIME;
+	p[4].buffer_type = MYSQL_TYPE_STRING;
 	p[4].buffer = &origin->m_time;
 	p[4].buffer_length = strlen(origin->m_time);
 
