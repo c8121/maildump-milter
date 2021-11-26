@@ -41,6 +41,7 @@
 
 #include "./lib/char_util.c"
 #include "./lib/file_util.c"
+#include "./lib/config_file_util.c"
 
 #define STORAGE_SUBDIR_LENGTH 2
 #define METADATA_FILE_EXTENSION ".meta"
@@ -65,6 +66,7 @@ char *storage_base_dir = "/tmp/test-archive";
 char *archive_file_suffix = NULL;
 int save_metadata = 1;
 
+char *config_file = NULL;
 
 /**
  * 
@@ -101,12 +103,16 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "b:p:s:n";
+	const char *options = "c:b:p:s:n";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
 		switch(c) {
 
+		case 'c':
+			config_file = optarg;
+			break;
+		
 		case 'b':
 			storage_base_dir = optarg;
 			break;
@@ -131,6 +137,15 @@ void configure(int argc, char *argv[]) {
 		case 'n':
 			save_metadata = 0;
 			break;
+		}
+	}
+	
+	if( config_file != NULL ) {
+		if( read_config(config_file) == 0 ) {
+			set_config(&storage_base_dir, "storage_base_dir", 1, 1);
+			//printf("Storage base dir: \"%s\"\n", storage_base_dir);
+		} else {
+			exit(EX_IOERR);
 		}
 	}
 }
