@@ -22,7 +22,7 @@
  *
  * - Each file must extist only once, based on hash of file contents
  * - To enable incremental backups, storage is structured by direcotries on first level containig 
- *   files added in a certain period. There directories will not be touched later on. 
+ *   files added in a certain period. These directories will not be touched later on. 
  */
 
 
@@ -88,11 +88,13 @@ void usage() {
 	printf("         Copy the file to another file\n");
 	printf("\n");
 	printf("Options:\n");
+	printf("    -c <path>   Config file.\n");
+	printf("\n");
 	printf("    -b <dir>    Storage base directory.\n");
 	printf("\n");
 	printf("    -s <suffix> Archive file suffix. This suffix will be appended to the archive file.\n");
 	printf("\n");
-	printf("    -p <apth>   Password file for encoding. Can be NULL to explicity omit encoding.\n");
+	printf("    -p <path>   Password file for encoding. Can be NULL to explicity omit encoding.\n");
 	printf("\n");
 	printf("    -n          No meta data: No not create/update/save meta data file along with content file.\n");
 	printf("\n");
@@ -140,6 +142,8 @@ void configure(int argc, char *argv[]) {
 		}
 	}
 	
+	
+	// Read config from file (if option 'c' is present):
 	if( config_file != NULL ) {
 		if( read_config(config_file) == 0 ) {
 			set_config(&storage_base_dir, "storage_base_dir", 1, 1);

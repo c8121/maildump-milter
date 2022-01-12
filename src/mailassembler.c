@@ -49,9 +49,9 @@ void usage() {
 	printf("Usage: mailassembler [-q] [-d] <parsed file> <output file>\n");
 	printf("\n");
 	printf("Options:\n");
-	printf("    -q              Quiet: No output besides the filename of message file.\n");
+	printf("    -q  Quiet: No output besides the filename of message file.\n");
 	printf("\n");
-	printf("    -d              Delete input files after all files have been assembled to a message file.\n");
+	printf("    -d  Delete input files after all files have been assembled to a message file.\n");
 	printf("\n");
 }
 

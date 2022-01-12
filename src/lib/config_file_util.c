@@ -29,7 +29,7 @@ struct config_item *config = NULL;
 
 
 /**
- * malloc & copie value  
+ * malloc & copy value  
  */
 char *get_config(char *name, int ltrim, int rtrim) {
 
@@ -57,7 +57,7 @@ char *get_config(char *name, int ltrim, int rtrim) {
 }
 
 /**
- * Assign if value was found
+ * Assign to dst if value was found
  */
 void set_config(char **dst, char *name, int ltrim, int rtrim) {
 	
