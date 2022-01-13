@@ -18,6 +18,8 @@
  */
 
 /*
+ * Add & retrieve files from a archive.
+ * 
  * Saves files into a "storage" directory
  *
  * - Each file must extist only once, based on hash of file contents
@@ -25,8 +27,6 @@
  *   files added in a certain period. These directories will not be touched later on. 
  */
 
-
-/// -------------- WIP: JUST TESTING AT THE MOMENT -------------------- //
 
 #include <stdlib.h>
 #include <time.h>

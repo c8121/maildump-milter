@@ -17,6 +17,20 @@
  * Author: christian c8121 de
  */
 
+/*
+ * Store meta data into a database (MariaDB)
+ * 
+ * Primary key is a hash (sha256 for example)
+ * 
+ * Following information will be stored as meta data to a hash:
+ * 
+ *  - name: A arbitrary name (an original file name or the subject of a mail message)
+ *  - origin: Describes the origin (can be the original file path or the sender of a mail message)
+ *  - owner: Name (or id) of the original owner (or the recipient of a mail message) 
+ *  - create time (optional, via option 'c', format "yyyy-mm-dd hh:mm:ss")
+ *  - modified time (optional, via option 'm', format "yyyy-mm-dd hh:mm:ss")
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
