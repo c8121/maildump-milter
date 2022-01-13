@@ -13,9 +13,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
+/*
  * Author: christian c8121 de
  */
+
+/*
+ * MILTER for sendmail/postfix
+ * Stores a message to local file system.
+ * 
+ * Listens to a UNIX-Socket, retrieves messages via MILTER protokol 
+ * and saves to a configurable directory with a unique and random name
+ */
+
 
 #include <stdlib.h>
 #include <time.h>
@@ -38,6 +47,22 @@ char *outputDir = "/var/spool/postfix/maildump";
 
 char *envFromHeader = "X-ARCHIVED-FROM";
 char *envRcptHeader = "X-ARCHIVED-RCPT";
+
+
+
+/**
+ * 
+ */
+void print_usage_message() {
+	printf( "%s\n", milterName);
+	printf( "Usage:\n");
+	printf( "  -s <socket path> (default: %s)\n", socketPath);
+	printf( "  -o <output directory> (default: %s)\n", outputDir);
+	printf( "  -f <envelope from header name> (default: %s, empty to omit this header)\n", envFromHeader);
+	printf( "  -t <envelope rcpt-to header name> (default: %s, empty to omit this header)\n", envRcptHeader);
+}
+
+
 
 
 /**
@@ -232,18 +257,6 @@ struct smfiDesc smfilter =
 		mlfi_close	/* connection cleanup */
 };
 
-
-/**
- * 
- */
-void print_usage_message() {
-	printf( "%s\n", milterName);
-	printf( "Usage:\n");
-	printf( "  -s <socket path> (default: %s)\n", socketPath);
-	printf( "  -o <output directory> (default: %s)\n", outputDir);
-	printf( "  -f <envelope from header name> (default: %s, empty to omit this header)\n", envFromHeader);
-	printf( "  -t <envelope rcpt-to header name> (default: %s, empty to omit this header)\n", envRcptHeader);
-}
 
 
 /**

@@ -17,8 +17,16 @@
  * Author: christian c8121 de
  */
 
+/*
+ * Adds contents of a mime message file to a SOLR index. 
+ * Expects the following data:
+ * 
+ *  - index name
+ *  - message ID (hash created by archive-program)
+ *  - file containing mime headers (email file)
+ *  - text files containing plain text to be indexed
+ */
 
-/// -------------- WIP: JUST A TESTING UTIL AT THE MOMENT -------------------- //
 
 #define _GNU_SOURCE //to enable strcasestr(...)
 
@@ -43,7 +51,7 @@ char *add_doc_json_tpl = "./config/solr-add-mail.tpl.json";
  * 
  */
 void usage() {
-	printf("Usage: mailindexer-solr <collection> <ID> <email file>  <text-file> [<text-files>...]\n");
+	printf("Usage: mailindexer-solr <collection> <ID> <email file> <text-file> [<text-files>...]\n");
 }
 
 

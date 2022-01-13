@@ -17,8 +17,21 @@
  * Author: christian c8121 de
  */
 
-
-/// -------------- WIP: JUST A TESTING UTIL AT THE MOMENT -------------------- //
+/*
+ * Add & retrieve mime messages from a archive.
+ * 
+ * Add a message:
+ * Takes a Mime message file and parses its contents.
+ * The message itself and each part of the message will be added to a archive directory (using archive program).
+ * Parts will be deduplicated in archive, as archiving is based on hashes created from part contents.
+ * 
+ * If a index name is configured, it launches a indexer program to add message and part-contents to a index for searching.
+ * See mailindexer-* program(s)
+ * 
+ * Retrieve a message:
+ * Takes a hash and looks for the archived message assigned to the hash.
+ * Reassembles the message by adding all parts and saves the message to a file.
+ */
 
 #define _GNU_SOURCE //to enable strcasestr(...)
 

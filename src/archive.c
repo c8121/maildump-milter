@@ -25,6 +25,9 @@
  * - Each file must extist only once, based on hash of file contents
  * - To enable incremental backups, storage is structured by direcotries on first level containig 
  *   files added in a certain period. These directories will not be touched later on. 
+ * - Archive file name ist created from content-hash of the original file content,
+ *   which means archive contents are deduplicated.
+ *   (all first-level directories will be checked if one already contains a file before adding it) 
  */
 
 

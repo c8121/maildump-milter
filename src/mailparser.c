@@ -17,8 +17,10 @@
  * Author: christian c8121 de
  */
 
-
-/// -------------- WIP: JUST A TESTING UTIL AT THE MOMENT -------------------- //
+/*
+ * Takes a MIME message and saves each part in a separate file.
+ * Conterpart to this is mailassembler.
+ */
 
 #define _GNU_SOURCE //to enable strcasestr(...)
 

@@ -17,6 +17,10 @@
  * Author: christian c8121 de
  */
 
+/*
+ * Reads a MIME message file and sends it via SMTP to a mail server.
+ */
+
 #define _GNU_SOURCE //to enable strcasestr(...)
 
 #include <stdio.h>

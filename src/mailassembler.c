@@ -17,10 +17,9 @@
  * Author: christian c8121 de
  */
 
-
-/// -------------- WIP: JUST A TESTING UTIL AT THE MOMENT -------------------- //
-
-// Counterpart to mailparser: Rebiuld a message file which was parsed by mailparser
+/*
+ * Counterpart to mailparser: Rebiuld a message file which was parsed by mailparser 
+ */
 
 #define _GNU_SOURCE //to enable strcasestr(...)
 
