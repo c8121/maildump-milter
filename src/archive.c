@@ -68,6 +68,8 @@ int save_metadata = 1;
 
 char *config_file = NULL;
 
+int verbosity = 0;
+
 /**
  * 
  */
@@ -98,6 +100,8 @@ void usage() {
 	printf("\n");
 	printf("    -n          No meta data: No not create/update/save meta data file along with content file.\n");
 	printf("\n");
+	printf("    -v          verbosity (can be repeated to increase verbosity)\n");
+	printf("\n");
 }
 
 /**
@@ -105,7 +109,7 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "c:b:p:s:n";
+	const char *options = "c:b:p:s:nv";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
@@ -139,6 +143,9 @@ void configure(int argc, char *argv[]) {
 		case 'n':
 			save_metadata = 0;
 			break;
+			
+		case 'v':
+			verbosity++;
 		}
 	}
 	
@@ -146,8 +153,22 @@ void configure(int argc, char *argv[]) {
 	// Read config from file (if option 'c' is present):
 	if( config_file != NULL ) {
 		if( read_config(config_file) == 0 ) {
-			set_config(&storage_base_dir, "storage_base_dir", 1, 1);
-			//printf("Storage base dir: \"%s\"\n", storage_base_dir);
+			
+			set_config(&hash_program, "hash_program", 1, 1, 1, verbosity);
+			
+			set_config(&copy_program, "copy_program", 1, 1, 1, verbosity);
+			set_config(&mkdir_program, "mkdir_program", 1, 1, 1, verbosity);
+			
+			set_config(&compress_program, "compress_program", 1, 1, 1, verbosity);
+			set_config(&uncompress_program, "uncompress_program", 1, 1, 1, verbosity);
+			
+			set_config(&password_file, "password_file", 1, 1, 1, verbosity);
+			set_config(&encode_program, "encode_program", 1, 1, 1, verbosity);
+			set_config(&decode_program, "decode_program", 1, 1, 1, verbosity);
+			
+			set_config(&storage_base_dir, "storage_base_dir", 1, 1, 1, verbosity);
+			set_config(&archive_file_suffix, "archive_file_suffix", 1, 1, 1, verbosity);
+			
 		} else {
 			exit(EX_IOERR);
 		}

@@ -36,13 +36,14 @@ char *get_config(char *name, int ltrim, int rtrim) {
 	struct config_item *curr = config;
 	while( curr != NULL ) {
 
-		//printf("(%s): (%s)\n", curr->name, curr->value);
 		if( strcmp(name, curr->name) == 0 ) {
 
-			char *result = malloc(strlen(curr->value));
-			strcpy(result, curr->value);
+			char *v = curr->value;
+			for( ; ltrim != 0 && (*v == ' ' || *v == '\r' || *v == '\n') ; v++ );
 			
-			for( ; ltrim != 0 && (*result == ' ' || *result == '\r' || *result == '\n') ; result++ );
+			char *result = malloc(strlen(v)+1);
+			strcpy(result, v);
+			
 			for( char *p = result + strlen(result)-1; rtrim != 0 && (*p == ' ' || *p == '\r' || *p == '\n') ; p-- )
 				*p = '\0';
 			
@@ -59,11 +60,24 @@ char *get_config(char *name, int ltrim, int rtrim) {
 /**
  * Assign to dst if value was found
  */
-void set_config(char **dst, char *name, int ltrim, int rtrim) {
+void set_config(char **dst, char *name, int ltrim, int rtrim, int empty_is_null, int verbosity) {
 	
 	char *value = get_config(name, ltrim, rtrim);
-	if( value != NULL )
+	if( value != NULL ) {
+		
+		if( empty_is_null != 0 && value[0] == '\0' ) {
+			free(value);
+			value = NULL;
+		}
+		
+		if( verbosity > 0 ) {
+			fprintf(stderr, "Set config: %s = %s\n", name, value);
+			if( verbosity > 1 )
+				fprintf(stderr, "  (previous value: %s)\n", *dst);
+		}
+		
 		*dst = value;
+	}
 	
 }
 
