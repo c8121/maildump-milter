@@ -30,15 +30,15 @@ void en_decode_test(char *s) {
 	printf("SOURCE: %s\n", s);
 
 	struct base64_encoding_buffer *encbuf = base64_create_encoding_buffer(75);
-	base64_encode_chunk(encbuf, s, strlen(s)+1);
+	base64_encode_chunk(encbuf, (unsigned char*)s, strlen(s));
 	printf("ENCODED: %s\n", encbuf->s);
 
 	struct base64_decoding_buffer *decbuf = base64_create_decoding_buffer();
-	base64_decode_chunk(decbuf, encbuf->s, strlen(encbuf->s));
+	base64_decode_chunk(decbuf, encbuf->s, strlen((char *)encbuf->s));
 	printf("DECODED: %s\n", decbuf->s);
-	
+
 	printf("\n\n----------------------\n");
-	
+
 	free(encbuf);
 	free(decbuf);
 
@@ -49,11 +49,45 @@ void en_decode_test(char *s) {
  */
 int main(int argc, char *argv[]) {
 
+	// check strings
 	en_decode_test("Hello World");
 	en_decode_test("Hello World!");
 	en_decode_test("Hello World!!");
 	en_decode_test("Hello World!!!");
 	en_decode_test("Hello World!!!!");
+
+	// check binary data
+	unsigned char bin[255];
+	for( unsigned char i=0 ; i < 255 ; i++ ) {
+		bin[i] = i;
+		printf("%d ", bin[i]);
+	}
+	printf("\n");
+
+	struct base64_encoding_buffer *encbuf = base64_create_encoding_buffer(75);
+	base64_encode_chunk(encbuf, bin, 255);
+	printf("ENCODED:\n%s\n", encbuf->s);
+
+	struct base64_decoding_buffer *decbuf = base64_create_decoding_buffer();
+	base64_decode_chunk(decbuf, encbuf->s, strlen((char *)encbuf->s));
+	printf("DECODED:\n");
+	for( unsigned char i=0 ; i < 255 ; i++ ) {
+		printf("%d ", decbuf->s[i]);
+	}
+	printf("\n\n");
+
+	// check encoding in chunks
+	struct base64_encoding_buffer *encbuf2 = base64_create_encoding_buffer(75);
+	
+	int chunk_size = 96;
+	int offset = 0;
+	while( offset < 255 ) {
+		printf("ENCODE CHUNK, size=%d\n", chunk_size);
+		base64_encode_chunk(encbuf2, bin + offset, offset + chunk_size > 255 ? 255 - offset : chunk_size);
+		offset += chunk_size;
+		printf("ENCODED CHUNK:\n%s\n", encbuf2->s);
+	}
+	printf("ENCODED:\n%s\n", encbuf2->s);
 
 }
 

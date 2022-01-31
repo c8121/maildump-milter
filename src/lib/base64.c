@@ -13,7 +13,8 @@
 #define BASE64_MAX_MALLOC_SIZE 4206592 //4MB
 
 struct base64_encoding_buffer {
-	char *s;
+	unsigned char *s;
+	size_t encoded_len;
 	int max_line_length; //must be set before first call of base64_encode_chunk
 	int line_index; //position in current line, should be initialized with 0
 };
@@ -21,7 +22,7 @@ struct base64_encoding_buffer {
 struct base64_decoding_buffer {
 	unsigned char *s;
 	size_t len;
-	char *encoded; //Data which has not been encoded so far (input length was not devidable by 4 or not padded) 
+	unsigned char *encoded; //Data which has not been encoded so far (input length was not devidable by 4 or not padded) 
 	size_t encoded_len;
 	size_t encoded_avail;
 };
@@ -32,6 +33,7 @@ struct base64_decoding_buffer {
 struct base64_encoding_buffer* base64_create_encoding_buffer(int max_line_length) {
 	struct base64_encoding_buffer *buf = malloc(sizeof(struct base64_encoding_buffer));
 	buf->s = NULL;
+	buf->encoded_len = 0;
 	buf->max_line_length = max_line_length;
 	buf->line_index = 0;
 
@@ -44,7 +46,7 @@ struct base64_encoding_buffer* base64_create_encoding_buffer(int max_line_length
 size_t base64_encoded_size(size_t len) {
 
 	size_t b64_len = len * 4 / 3;
-	
+
 	size_t pad = b64_len % 4;
 	if( pad > 0 )
 		b64_len += 4 - b64_len % 4;
@@ -59,11 +61,11 @@ size_t base64_encoded_size(size_t len) {
 void base64_encode_chunk(struct base64_encoding_buffer *buf, unsigned char *s, size_t len) {
 
 	if( buf->s != NULL ) {
-		size_t last = strlen(buf->s)-1;
+		size_t last = buf->encoded_len;
 		while( buf->s[last] == '\r' || buf->s[last] == '\n' )
 			last--;
 		if( buf->s[last] == '=' ) {
-			fprintf(stderr, "Cannot append chunk, buffer was padded (please take care to choose a length devidable by 3 when appending chunks; only last chunk can have different size\n)");
+			fprintf(stderr, "Cannot append chunk, buffer was padded (please take care to choose a length devidable by 3 when appending chunks; only last chunk can have different size)\n");
 			exit(EX_IOERR);
 		}
 	}
@@ -75,59 +77,73 @@ void base64_encode_chunk(struct base64_encoding_buffer *buf, unsigned char *s, s
 
 	unsigned char *p = s;
 	unsigned char *o = out;
+	unsigned char *end = s + len;
 
-	while( p + 3 < s + len ) {
-		*o++ = BASE64[*p >> 2];
-		*o++ = BASE64[((*p & 0x03) << 4) | (*(p+1) >> 4)];
-		*o++ = BASE64[((*(p+1) & 0x0F) << 2) | (*(p+2) >> 6)];
-		*o++ = BASE64[*(p+2) & 0x3F];
+	unsigned char last;
+	int byte_idx = 0;
 
-		p += 3;
-		buf->line_index += 4;
+	while( p < end ) {
+
+		switch( byte_idx ) {
+
+		case 0:
+			*o++ = BASE64[(*p >> 2) & 0x3F];
+			buf->line_index++;
+			break;
+		case 1:
+			*o++ = BASE64[((last & 0x3) << 4) | ((*p >> 4) & 0xF)];
+			buf->line_index++;
+			break;
+		case 2:
+			*o++ = BASE64[((last & 0xF) << 2) | ((*p >> 6) & 0x3)];
+			*o++ = BASE64[*p & 0x3F];
+			buf->line_index += 2;
+			break;
+		}
+
+		last = *p++;
+		byte_idx = byte_idx < 2 ? byte_idx+1 : 0;
+
 		if( buf->line_index >= buf->max_line_length ) {
 			*o++ = '\r';
 			*o++ = '\n';
 			buf->line_index = 0;
 		}
 	}
-	
-	
-	size_t remain = len - (p - s) - 1;
 
-	if ( remain == 0 ) {
-		/* No padding needed */
-	} else if (remain == 1) {
-		*o++ = BASE64[*p >> 2];
-		*o++ = BASE64[((*p & 0x03) << 4)];
+	switch (byte_idx) {
+	case 1:
+		*o++ = BASE64[(last & 0x3) << 4];
 		*o++ = '=';
 		*o++ = '=';
-	} else {
-		*o++ = BASE64[*p >> 2];
-		*o++ = BASE64[((*p & 0x03) << 4) | (*(p+1) >> 4)];
-		*o++ = BASE64[((*(p+1) & 0x0F) << 2)];
+		break;
+	case 2:
+		*o++ = BASE64[(last & 0xF) << 2];
 		*o++ = '=';
+		break;
 	}
-	*o++ = '\0';
 
+	*o = '\0';
 
+	out_len = o - out;
 	if( buf->s == NULL ) {
-		buf->s = malloc(strlen(out)+1);
-		strcpy(buf->s, out);
+		buf->encoded_len = out_len;
+		buf->s = malloc(out_len + 1);
+		memcpy(buf->s, out, out_len + 1);
 	} else {
-		unsigned char *tmp = malloc(strlen(buf->s)+strlen(out)+1);
-		strcpy(tmp, buf->s);
-		strcat(tmp, out);
+		unsigned char *tmp = malloc(buf->encoded_len + out_len + 1);
+		memcpy(tmp, buf->s, buf->encoded_len);
+		memcpy(tmp + buf->encoded_len, out, out_len + 1);
 		free(buf->s);
+		buf->encoded_len += out_len;
 		buf->s = tmp;
 	}
-	
-	//printf("OUT: (%s) %ld\n", out, strlen(out));
 }
 
 /**
  * 
  */
-unsigned int __base64_val(char c)
+unsigned int __base64_val(unsigned char c)
 {
 	if ('A' <= c && c <= 'Z') 
 		return c - 'A';
@@ -164,21 +180,22 @@ struct base64_decoding_buffer* base64_create_decoding_buffer() {
 void base64_append_chunk(struct base64_decoding_buffer *buf, unsigned char *s, size_t len)
 {
 	if( buf->encoded == NULL ) {
-		size_t malloc_size = len * 4;
+		size_t malloc_size = len;
 		buf->encoded = malloc(malloc_size);
 		buf->encoded_len = 0;
 		buf->encoded_avail = malloc_size;
 	} else {
-		if( buf->encoded_avail < buf->encoded_len + len + 1 ) {
+		if( buf->encoded_avail < buf->encoded_len + len ) {
 			size_t malloc_size = buf->encoded_len * 2;
+			malloc_size += len;
 			if( malloc_size > BASE64_MAX_MALLOC_SIZE ) {
 				malloc_size = BASE64_MAX_MALLOC_SIZE;
 			}
-			unsigned char *tmp = malloc(buf->encoded_avail + malloc_size + len + 1);
+			unsigned char *tmp = malloc(buf->encoded_avail + malloc_size);
 			memcpy(tmp, buf->encoded, buf->encoded_len);
 			free(buf->encoded);
 			buf->encoded = tmp;
-			buf->encoded_avail += malloc_size + len + 1;
+			buf->encoded_avail += malloc_size;
 		}
 	}
 
@@ -186,15 +203,14 @@ void base64_append_chunk(struct base64_decoding_buffer *buf, unsigned char *s, s
 	unsigned char *o = buf->encoded + buf->encoded_len;
 	unsigned char *n = s + len;
 	size_t valid_cnt = 0;
-	while( *p && p < n ) {
-		//Copy valid chars and padding only
-		if (*p == '=' || (__base64_val(*p)) < 64) {
+	while( p < n ) {
+		//Copy valid chars and padding only (ignore CRLF)
+		if (*p == '=' || __base64_val(*p) < 64) {
 			*o++ = *p;
 			valid_cnt++;
 		}
 		p++;
 	}
-	*o++ = '\0';
 
 	buf->encoded_len += valid_cnt;
 }
@@ -216,7 +232,7 @@ void base64_decode_chunk(struct base64_decoding_buffer *buf, unsigned char *s, s
 	unsigned char *p = buf->encoded;
 	unsigned char *o = out;
 
-	for (have_bits = 0; *p && *p != '='; p++) {
+	for (have_bits = 0; *p != '=' && (p - buf->encoded) < buf->encoded_len ; p++) {
 
 		v = __base64_val(*p);
 
@@ -244,7 +260,6 @@ void base64_decode_chunk(struct base64_decoding_buffer *buf, unsigned char *s, s
 			have_bits = 0; 
 			break;
 		}
-
 	}
 
 	size_t out_len = o - out;

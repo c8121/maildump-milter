@@ -16,6 +16,7 @@ if [[ ! -d "$binDir" ]] ; then
 fi
 
 cd $BASE
-gcc -g -o "$binDir/base64" "$sourceDir/base64.c"
+rm "$binDir/base64"
+gcc -Wall -g -o "$binDir/base64" "$sourceDir/base64.c"
 
 
