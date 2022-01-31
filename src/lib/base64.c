@@ -29,6 +29,33 @@ struct base64_decoding_buffer {
 /**
  * 
  */
+struct base64_encoding_buffer* base64_create_encoding_buffer(int max_line_length) {
+	struct base64_encoding_buffer *buf = malloc(sizeof(struct base64_encoding_buffer));
+	buf->s = NULL;
+	buf->max_line_length = max_line_length;
+	buf->line_index = 0;
+
+	return buf;
+}
+
+/**
+ * 
+ */
+size_t base64_encoded_size(size_t len) {
+
+	size_t b64_len = len * 4 / 3;
+	
+	size_t pad = b64_len % 4;
+	if( pad > 0 )
+		b64_len += 4 - b64_len % 4;
+
+	return b64_len;
+}
+
+
+/**
+ * 
+ */
 void base64_encode_chunk(struct base64_encoding_buffer *buf, unsigned char *s, size_t len) {
 
 	if( buf->s != NULL ) {
@@ -41,15 +68,15 @@ void base64_encode_chunk(struct base64_encoding_buffer *buf, unsigned char *s, s
 		}
 	}
 
-	size_t out_len = len * 4 / 3 + 4;
-	out_len += out_len / buf->max_line_length *2; //CRLF
-	out_len++; // nul
+	size_t out_len = base64_encoded_size(len);
+	out_len += out_len / buf->max_line_length * 2; //CRLF
+	out_len += 3; // CRLF+nul
 	unsigned char *out = malloc(out_len);
 
 	unsigned char *p = s;
 	unsigned char *o = out;
 
-	while( p < s + len ) {
+	while( p + 3 < s + len ) {
 		*o++ = BASE64[*p >> 2];
 		*o++ = BASE64[((*p & 0x03) << 4) | (*(p+1) >> 4)];
 		*o++ = BASE64[((*(p+1) & 0x0F) << 2) | (*(p+2) >> 6)];
@@ -63,23 +90,22 @@ void base64_encode_chunk(struct base64_encoding_buffer *buf, unsigned char *s, s
 			buf->line_index = 0;
 		}
 	}
+	
+	
+	size_t remain = len - (p - s) - 1;
 
-	if (!*p) {
+	if ( remain == 0 ) {
 		/* No padding needed */
-	} else if (!*(p+1)) {
+	} else if (remain == 1) {
 		*o++ = BASE64[*p >> 2];
 		*o++ = BASE64[((*p & 0x03) << 4)];
 		*o++ = '=';
 		*o++ = '=';
-		*o++ = '\r';
-		*o++ = '\n';
 	} else {
 		*o++ = BASE64[*p >> 2];
 		*o++ = BASE64[((*p & 0x03) << 4) | (*(p+1) >> 4)];
 		*o++ = BASE64[((*(p+1) & 0x0F) << 2)];
 		*o++ = '=';
-		*o++ = '\r';
-		*o++ = '\n';
 	}
 	*o++ = '\0';
 
@@ -94,6 +120,8 @@ void base64_encode_chunk(struct base64_encoding_buffer *buf, unsigned char *s, s
 		free(buf->s);
 		buf->s = tmp;
 	}
+	
+	//printf("OUT: (%s) %ld\n", out, strlen(out));
 }
 
 /**
@@ -112,6 +140,21 @@ unsigned int __base64_val(char c)
 	if (c == '/') 
 		return 63;
 	return 64;
+}
+
+
+
+/**
+ * 
+ */
+struct base64_decoding_buffer* base64_create_decoding_buffer() {
+	struct base64_decoding_buffer *buf = malloc(sizeof(struct base64_decoding_buffer));
+	buf->s = NULL;
+	buf->len = 0;
+	buf->encoded = NULL;
+	buf->encoded_len = 0;
+
+	return buf;
 }
 
 /**
@@ -164,7 +207,7 @@ void base64_decode_chunk(struct base64_decoding_buffer *buf, unsigned char *s, s
 	if( s != NULL ) {
 		base64_append_chunk(buf, s, len);
 	}
-	
+
 	unsigned char *out = malloc(buf->encoded_len);
 
 	unsigned int c, v;

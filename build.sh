@@ -26,15 +26,15 @@ for r in $REQUIRE ; do
 	fi
 done
 
-gcc -o "$binDir/maildump" "$sourceDir/maildump.c" $REQUIRE -pthread -lbsd
+gcc -Wall -o "$binDir/maildump" "$sourceDir/maildump.c" $REQUIRE -pthread -lbsd
 
 
 echo "Build mailforwarder"
-gcc -o "$binDir/mailforward" "$sourceDir/mailforward.c" -lmailutils
+gcc -Wall -o "$binDir/mailforward" "$sourceDir/mailforward.c" -lmailutils
 
 
 echo "Build mailparser & mailassembler"
-gcc -o "$binDir/mailparser" "$sourceDir/mailparser.c" -lmailutils
+gcc -Wall -o "$binDir/mailparser" "$sourceDir/mailparser.c" -lmailutils
 gcc -o "$binDir/mailassembler" "$sourceDir/mailassembler.c" -lmailutils
 
 echo "Build mailindexer"
