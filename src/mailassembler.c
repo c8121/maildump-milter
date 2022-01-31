@@ -82,11 +82,8 @@ void configure(int argc, char *argv[]) {
  */
 void replace_base64_content(struct message_line *ref, FILE *fp) {
 
-	struct base64_encoding_buffer *buf = malloc(sizeof(struct base64_encoding_buffer));
-	buf->s = NULL;
-	buf->max_line_length = 75;
-	buf->line_index = 0;
-
+	struct base64_encoding_buffer *buf = base64_create_encoding_buffer(75);
+	
 	int chunk_size = 4002; //must be devidable by 3
 	unsigned char chunk[chunk_size];
 	int r;

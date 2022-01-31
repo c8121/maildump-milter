@@ -194,12 +194,8 @@ void qp_decode_save(struct message_line *start, struct message_line *end, FILE *
 void base64_decode_save(struct message_line *start, struct message_line *end, FILE *fp) {
 
 	int in_header = 1;
-	struct base64_decoding_buffer *buf = malloc(sizeof(struct base64_decoding_buffer));
-	buf->s = NULL;
-	buf->len = 0;
-	buf->encoded = NULL;
-	buf->encoded_len = 0;
-
+	struct base64_decoding_buffer *buf = base64_create_decoding_buffer();
+	
 	struct message_line *curr = start;
 	while( curr != NULL && curr != end ) {
 
