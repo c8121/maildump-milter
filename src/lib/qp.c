@@ -154,7 +154,7 @@ void qp_free_decoding_buffer(struct qp_decoding_buffer *buf) {
  */
 void qp_decode_chunk(struct qp_decoding_buffer *buf, unsigned char *s, size_t len)
 {
-	unsigned char *out = malloc(len);
+	unsigned char *out = malloc(len + 1); //nul will be added for output
 
 	unsigned char *p = s;
 	unsigned char *o = out;

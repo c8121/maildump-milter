@@ -192,7 +192,7 @@ void base64_free_decoding_buffer(struct base64_decoding_buffer *buf) {
 	if( buf->s != NULL )
 		free(buf->s);
 	
-	if( buf->encoded )
+	if( buf->encoded != NULL )
 		free(buf->encoded);
 	
 	free(buf);

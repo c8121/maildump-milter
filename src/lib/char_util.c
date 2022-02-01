@@ -183,7 +183,7 @@ char* strreplace(char *s, char *f, char *r) {
 
 	char *last = s;
 	char *p = s;
-	while( p = strstr(p, f) ) {
+	while( (p = strstr(p, f)) ) {
 
 		char tmp[p - last + r_len + 1];
 		strncpy(tmp, last, p - last);

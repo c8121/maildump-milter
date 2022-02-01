@@ -172,13 +172,13 @@ void qp_decode_save(struct message_line *start, struct message_line *end, FILE *
 				in_header = 0;
 			}
 		} else {
-			qp_decode_chunk(buf, curr->s, strlen(curr->s));
+			qp_decode_chunk(buf, (unsigned char*)curr->s, strlen(curr->s));
 		}
 
 		curr = curr->next;
 	}
 
-	fwrite(buf->s, 1, strlen(buf->s), fp);
+	fwrite(buf->s, 1, buf->len, fp);
 
 	qp_free_decoding_buffer(buf);
 
@@ -200,7 +200,7 @@ void base64_decode_save(struct message_line *start, struct message_line *end, FI
 				in_header = 0;
 			}
 		} else {
-			base64_append_chunk(buf, curr->s, strlen(curr->s));
+			base64_append_chunk(buf, (unsigned char*)curr->s, strlen(curr->s));
 		}
 
 		curr = curr->next;
