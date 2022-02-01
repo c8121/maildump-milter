@@ -180,9 +180,7 @@ void qp_decode_save(struct message_line *start, struct message_line *end, FILE *
 
 	fwrite(buf->s, 1, strlen(buf->s), fp);
 
-	if( buf->s != NULL)
-		free(buf->s);
-	free(buf);
+	qp_free_decoding_buffer(buf);
 
 }
 
@@ -211,11 +209,7 @@ void base64_decode_save(struct message_line *start, struct message_line *end, FI
 	base64_decode_chunk(buf, NULL, 0);
 	fwrite(buf->s, 1, buf->len, fp);
 
-	if( buf->s != NULL)
-		free(buf->s);
-	if( buf->encoded != NULL)
-		free(buf->encoded);
-	free(buf);
+	base64_free_decoding_buffer(buf);
 }
 
 /**

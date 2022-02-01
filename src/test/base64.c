@@ -39,8 +39,8 @@ void en_decode_test(char *s) {
 
 	printf("\n\n----------------------\n");
 
-	free(encbuf);
-	free(decbuf);
+	base64_free_encoding_buffer(encbuf);
+	base64_free_decoding_buffer(decbuf);
 
 }
 
@@ -75,6 +75,9 @@ int main(int argc, char *argv[]) {
 		printf("%d ", decbuf->s[i]);
 	}
 	printf("\n\n");
+	
+	base64_free_encoding_buffer(encbuf);
+	base64_free_decoding_buffer(decbuf);
 
 	// check encoding in chunks
 	struct base64_encoding_buffer *encbuf2 = base64_create_encoding_buffer(75);
@@ -88,6 +91,8 @@ int main(int argc, char *argv[]) {
 		printf("ENCODED CHUNK:\n%s\n", encbuf2->s);
 	}
 	printf("ENCODED:\n%s\n", encbuf2->s);
+	
+	base64_free_encoding_buffer(encbuf2);
 
 }
 

@@ -43,14 +43,14 @@ struct qp_encoding_buffer* qp_create_encoding_buffer(int max_line_length) {
 /**
  * 
  */
-struct qp_decoding_buffer* qp_create_decoding_buffer() {
-
-	struct qp_decoding_buffer *buf = malloc(sizeof(struct qp_decoding_buffer));
-	buf->s = NULL;
-	buf->len = 0;
-
-	return buf;
+void qp_free_encoding_buffer(struct qp_encoding_buffer *buf) {
+	
+	if( buf->s != NULL )
+		free(buf->s);
+	
+	free(buf);
 }
+
 
 /**
  * 
@@ -122,6 +122,32 @@ int __hexval(int c) {
 		return c - '0';
 	return 10 + c - 'A';
 }
+
+
+/**
+ * 
+ */
+struct qp_decoding_buffer* qp_create_decoding_buffer() {
+
+	struct qp_decoding_buffer *buf = malloc(sizeof(struct qp_decoding_buffer));
+	buf->s = NULL;
+	buf->len = 0;
+	buf->len_avail = 0;
+
+	return buf;
+}
+
+/**
+ * 
+ */
+void qp_free_decoding_buffer(struct qp_decoding_buffer *buf) {
+	
+	if( buf->s != NULL )
+		free(buf->s);
+	
+	free(buf);
+}
+
 
 /**
  * 

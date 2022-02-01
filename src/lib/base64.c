@@ -43,6 +43,17 @@ struct base64_encoding_buffer* base64_create_encoding_buffer(int max_line_length
 /**
  * 
  */
+void base64_free_encoding_buffer(struct base64_encoding_buffer *buf) {
+	
+	if( buf->s != NULL )
+		free(buf->s);
+	
+	free(buf);
+}
+
+/**
+ * 
+ */
 size_t base64_encoded_size(size_t len) {
 
 	size_t b64_len = len * 4 / 3;
@@ -171,6 +182,20 @@ struct base64_decoding_buffer* base64_create_decoding_buffer() {
 	buf->encoded_len = 0;
 
 	return buf;
+}
+
+/**
+ * 
+ */
+void base64_free_decoding_buffer(struct base64_decoding_buffer *buf) {
+	
+	if( buf->s != NULL )
+		free(buf->s);
+	
+	if( buf->encoded )
+		free(buf->encoded);
+	
+	free(buf);
 }
 
 /**

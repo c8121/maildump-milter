@@ -39,8 +39,8 @@ void en_decode_test(char *s) {
 
 	printf("\n\n----------------------\n");
 
-	free(encbuf);
-	free(decbuf);
+	qp_free_encoding_buffer(encbuf);
+	qp_free_decoding_buffer(decbuf);
 
 }
 
@@ -58,12 +58,14 @@ int main(int argc, char *argv[]) {
 	qp_encode_chunk(encbuf, (unsigned char*)s, strlen(s));
 	qp_encode_chunk(encbuf, (unsigned char*)s, strlen(s));
 	printf("ENCODED:\n%s\n", encbuf->s);
+	qp_free_encoding_buffer(encbuf);
 
 	char* qps = "=3D0=3D1=3D2=3D3=3D4=3D5=3D6=3D7=3D8=3D9\n";
 	struct qp_decoding_buffer *decbuf = qp_create_decoding_buffer();
 	qp_decode_chunk(decbuf, (unsigned char*)qps, strlen(qps));
 	qp_decode_chunk(decbuf, (unsigned char*)qps, strlen(qps));
 	printf("DECODED:\n\"%s\"\n", decbuf->s);
+	qp_free_decoding_buffer(decbuf);
 
 }
 

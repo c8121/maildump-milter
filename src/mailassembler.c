@@ -92,11 +92,9 @@ void replace_base64_content(struct message_line *ref, FILE *fp) {
 		base64_encode_chunk(buf, chunk, r);
 	}
 
-	if( buf->s != NULL ) {
+	if( buf->s != NULL )
 		message_line_set_s(ref, buf->s);
-		free(buf->s);
-	}
-	free(buf);
+	base64_free_encoding_buffer(buf);
 }
 
 /**
@@ -112,11 +110,9 @@ void replace_qp_content(struct message_line *ref, FILE *fp) {
 		qp_encode_chunk(buf, line, strlen((char*)line));
 	}
 
-	if( buf->s != NULL ) {
+	if( buf->s != NULL )
 		message_line_set_s(ref, buf->s);
-		free(buf->s);
-	}
-	free(buf);
+	qp_free_encoding_buffer(buf);
 }
 
 /**
