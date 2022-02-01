@@ -104,15 +104,12 @@ void replace_base64_content(struct message_line *ref, FILE *fp) {
  */
 void replace_qp_content(struct message_line *ref, FILE *fp) {
 
-	struct qp_encoding_buffer *buf = malloc(sizeof(struct qp_encoding_buffer));
-	buf->s = NULL;
-	buf->max_line_length = 75;
-	buf->line_index = 0;
+	struct qp_encoding_buffer *buf = qp_create_encoding_buffer(75);
 
 	unsigned char line[4096];
 	while(fgets(line, sizeof(line), fp)) {
 
-		qp_encode_chunk(buf, line);
+		qp_encode_chunk(buf, line, strlen((char*)line));
 	}
 
 	if( buf->s != NULL ) {

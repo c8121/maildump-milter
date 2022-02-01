@@ -162,9 +162,7 @@ char* last_non_whitespace(char *s) {
 void qp_decode_save(struct message_line *start, struct message_line *end, FILE *fp) {
 
 	int in_header = 1;
-	struct qp_decoding_buffer *buf = malloc(sizeof(struct qp_decoding_buffer));
-	buf->s = NULL;
-	buf->len = 0;
+	struct qp_decoding_buffer *buf = qp_create_decoding_buffer();
 
 	struct message_line *curr = start;
 	while( curr != NULL && curr != end ) {
@@ -174,7 +172,7 @@ void qp_decode_save(struct message_line *start, struct message_line *end, FILE *
 				in_header = 0;
 			}
 		} else {
-			qp_decode_chunk(buf, curr->s);
+			qp_decode_chunk(buf, curr->s, strlen(curr->s));
 		}
 
 		curr = curr->next;
