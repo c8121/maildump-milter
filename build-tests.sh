@@ -19,4 +19,5 @@ cd $BASE
 rm "$binDir/base64"
 gcc -Wall -g -o "$binDir/base64" "$sourceDir/base64.c"
 
-
+rm "$binDir/qp"
+gcc -Wall -g -o "$binDir/qp" "$sourceDir/qp.c"

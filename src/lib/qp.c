@@ -13,23 +13,50 @@
 #define QP_MAX_MALLOC_SIZE 4096
 
 struct qp_encoding_buffer {
-	char *s;
+	unsigned char *s;
+	size_t encoded_len;
 	int max_line_length; //must be set before first call of qp_encode_chunk
 	int line_index; //position in current line, should be initialized with 0
 };
 
 struct qp_decoding_buffer {
-	char *s;
+	unsigned char *s;
 	size_t len;
 	size_t len_avail;
 };
 
+
 /**
  * 
  */
-void qp_encode_chunk(struct qp_encoding_buffer *buf, unsigned char *s) {
+struct qp_encoding_buffer* qp_create_encoding_buffer(int max_line_length) {
 
-	size_t len = strlen(s);
+	struct qp_encoding_buffer *buf = malloc(sizeof(struct qp_encoding_buffer));
+	buf->s = NULL;
+	buf->encoded_len = 0;
+	buf->max_line_length = max_line_length;
+	buf->line_index = 0;
+
+	return buf;
+}
+
+/**
+ * 
+ */
+struct qp_decoding_buffer* qp_create_decoding_buffer() {
+
+	struct qp_decoding_buffer *buf = malloc(sizeof(struct qp_decoding_buffer));
+	buf->s = NULL;
+	buf->len = 0;
+
+	return buf;
+}
+
+/**
+ * 
+ */
+void qp_encode_chunk(struct qp_encoding_buffer *buf, unsigned char *s, size_t len) {
+
 	size_t out_len = len * 3 + 6;
 	unsigned char *out = malloc(out_len);
 
@@ -37,7 +64,7 @@ void qp_encode_chunk(struct qp_encoding_buffer *buf, unsigned char *s) {
 	unsigned char *o = out;
 	unsigned char *n = p + len;
 
-	while( *p && p < n ) {
+	while( p < n ) {
 
 		if (buf->line_index >= buf->max_line_length && *(p) != '\r' && *(p) != '\n') {
 			*o++ = '=';
@@ -56,8 +83,8 @@ void qp_encode_chunk(struct qp_encoding_buffer *buf, unsigned char *s) {
 				*o++ = '\n';
 				buf->line_index = 0;
 			}
-			unsigned char tmp[4];
-			sprintf(tmp, "=%02X", (unsigned char)*p);
+			char tmp[4];
+			sprintf(tmp, "=%02X", *p);
 			for( int i=0 ; i < 3 ; i++)
 				*o++ = tmp[i];
 			p++;
@@ -70,14 +97,18 @@ void qp_encode_chunk(struct qp_encoding_buffer *buf, unsigned char *s) {
 	}
 	*o++ = '\0';
 
+	out_len = o - out - 1;
+
 	if( buf->s == NULL ) {
-		buf->s = malloc(strlen(out)+1);
-		strcpy(buf->s, out);
+		buf->encoded_len = out_len;
+		buf->s = malloc(out_len + 1);
+		memcpy(buf->s, out, out_len + 1);
 	} else {
-		unsigned char *tmp = malloc(strlen(buf->s)+strlen(out)+1);
-		strcpy(tmp, buf->s);
-		strcat(tmp, out);
+		unsigned char *tmp = malloc(buf->encoded_len + out_len + 1);
+		memcpy(tmp, buf->s, buf->encoded_len);
+		memcpy(tmp + buf->encoded_len, out, out_len + 1);
 		free(buf->s);
+		buf->encoded_len += out_len;
 		buf->s = tmp;
 	}
 }
@@ -95,15 +126,14 @@ int __hexval(int c) {
 /**
  * 
  */
-void qp_decode_chunk(struct qp_decoding_buffer *buf, unsigned char *s)
+void qp_decode_chunk(struct qp_decoding_buffer *buf, unsigned char *s, size_t len)
 {
-	size_t len = strlen(s);
-	unsigned char *out = malloc(len+1);
+	unsigned char *out = malloc(len);
 
 	unsigned char *p = s;
 	unsigned char *o = out;
 	unsigned char *n = p + len;
-	while( *p != '\0' && p < n ) {
+	while( p < n ) {
 
 		if (*p != '=')
 			*o++ = *p++;
@@ -122,11 +152,12 @@ void qp_decode_chunk(struct qp_decoding_buffer *buf, unsigned char *s)
 	}
 	*o++ = '\0';
 
-	size_t out_len = strlen(out);
+	size_t out_len = o - out - 1;
+	
 	if( buf->s == NULL ) {
 		size_t malloc_size = out_len * 4;
 		buf->s = malloc(malloc_size);
-		strcpy(buf->s, out);
+		memcpy(buf->s, out, out_len);
 		buf->len = out_len;
 		buf->len_avail = malloc_size;
 	} else {
@@ -142,10 +173,10 @@ void qp_decode_chunk(struct qp_decoding_buffer *buf, unsigned char *s)
 			buf->len_avail += malloc_size + out_len + 1;
 		}
 
-		strcpy(buf->s + buf->len, out);
+		memcpy(buf->s + buf->len, out, out_len);
 		buf->len += out_len;
 	}
-	
+
 	free(out);
 }
 
