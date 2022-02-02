@@ -17,6 +17,13 @@
  * Author: christian c8121 de
  */
 
+/*
+ * Requires these variables:
+ * db_host, db_port, db_user, db_pwd, db_name
+ * 
+ */
+
+
 #include <mysql/mysql.h>
 
 #include "charset_util.c"

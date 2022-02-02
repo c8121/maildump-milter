@@ -39,6 +39,7 @@
 #include <time.h>
 
 #include "./lib/db_archive.c"
+#include "./lib/config_file_util.c"
 
 #define EX_HASH_EXIST 1
 #define EX_HASH_FAILED 2
@@ -57,6 +58,10 @@ char *db_name = "archive";
 char c_time[20] = "";
 char m_time[20] = "";
 
+char *config_file = NULL;
+
+int verbosity = 0;
+
 /**
  * 
  */
@@ -71,11 +76,15 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "t:m:";
+	const char *options = "c:t:m:v";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
 		switch(c) {
+			
+		case 'c':
+			config_file = optarg;
+			break;
 
 		case 't':
 			if(strlen(optarg) > (sizeof(c_time) - 1)) {
@@ -92,6 +101,24 @@ void configure(int argc, char *argv[]) {
 			}
 			strcpy(m_time, optarg);
 			break;
+			
+		case 'v':
+			verbosity++;
+		}
+	}
+	
+	// Read config from file (if option 'c' is present):
+	if( config_file != NULL ) {
+		if( read_config(config_file) == 0 ) {
+			
+			set_config(&db_host, "db_host", 1, 1, 1, verbosity);
+			set_config_uint(&db_port, "db_port", verbosity);
+			set_config(&db_user, "db_user", 1, 1, 1, verbosity);
+			set_config(&db_pwd, "db_pwd", 1, 1, 1, 0);
+			set_config(&db_name, "db_name", 1, 1, 1, verbosity);
+			
+		} else {
+			exit(EX_IOERR);
 		}
 	}
 }

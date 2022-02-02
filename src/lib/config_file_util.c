@@ -82,6 +82,25 @@ void set_config(char **dst, char *name, int ltrim, int rtrim, int empty_is_null,
 }
 
 /**
+ * Assign to dst if value was found
+ */
+void set_config_uint(unsigned int *dst, char *name, int verbosity) {
+	
+	char *value = get_config(name, 1, 1);
+	if( value != NULL ) {
+		
+		if( verbosity > 0 ) {
+			fprintf(stderr, "Set config: %s = %i\n", name, atoi(value));
+			if( verbosity > 1 )
+				fprintf(stderr, "  (previous value: %i)\n", *dst);
+		}
+		
+		*dst = atoi(value);
+	}
+	
+}
+
+/**
  * Return 0 on success
  */
 int read_config(char *filename) {
