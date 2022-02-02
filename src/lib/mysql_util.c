@@ -69,7 +69,8 @@ MYSQL *db_connect(char *host, char *user, char *pwd, char *db, unsigned int port
 		mysql_close(c);
 		return NULL;
 	}
-
+	
+	return c;
 }
 
 
@@ -155,7 +156,7 @@ int get_owner(struct a_owner *owner) {
 		return -1;
 	}
 
-	memset(owner, 0, sizeof(owner));
+	memset(owner, 0, sizeof(struct a_owner));
 
 	MYSQL_BIND r[2];
 	memset(r, 0, sizeof(r));
@@ -271,7 +272,7 @@ int get_origin(struct a_origin *origin) {
 		return -1;
 	}
 
-	memset(origin, 0, sizeof(origin));
+	memset(origin, 0, sizeof(struct a_origin));
 
 	MYSQL_BIND r[2];
 	memset(r, 0, sizeof(r));
@@ -384,7 +385,7 @@ int get_entry(struct a_entry *entry) {
 		return -1;
 	}
 
-	memset(entry, 0, sizeof(entry));
+	memset(entry, 0, sizeof(struct a_entry));
 
 	MYSQL_BIND r[2];
 	memset(r, 0, sizeof(r));

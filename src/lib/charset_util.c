@@ -24,12 +24,13 @@ char* iso_to_utf(char *s) {
 
 	size_t len = strlen(s);
 
+	unsigned char *in = (unsigned char*)s;
 	unsigned char *out = malloc(len * 2 +1);
 
-	unsigned char *end = s + len;
-	unsigned char *p = s;
+	unsigned char *end = in + len;
+	unsigned char *p = in;
 	unsigned char *o = out;
-	while( *p && p < end ) {
+	while( p < end ) {
 		if (*p < 128)
 			*o++ = *p++;
 		else {
@@ -39,7 +40,7 @@ char* iso_to_utf(char *s) {
 	}
 	*o = '\0';
 
-	return out;
+	return (char *)out;
 }
 
 /**
@@ -53,10 +54,13 @@ int check_invalid_utf8_seq(char *s, char replace) {
 	int result = 1;
 
 	size_t len = strlen(s);
-	unsigned char *end = s + len;
-	unsigned char *p = s;
+	
+	unsigned char *in = (unsigned char*)s;
+	
+	unsigned char *end = in + len;
+	unsigned char *p = in;
 	int code_length;
-	while( *p && p < end ) {
+	while( p < end ) {
 
 		if( *p > 0x7F ) {
 

@@ -87,13 +87,13 @@ void replace_base64_content(struct message_line *ref, FILE *fp) {
 	int chunk_size = 4002; //must be devidable by 3
 	unsigned char chunk[chunk_size];
 	int r;
-	while(r = fread(chunk, 1, chunk_size, fp)) {
+	while((r = fread(chunk, 1, chunk_size, fp))) {
 
 		base64_encode_chunk(buf, chunk, r);
 	}
 
 	if( buf->s != NULL )
-		message_line_set_s(ref, buf->s);
+		message_line_set_s(ref, (char *)buf->s);
 	base64_free_encoding_buffer(buf);
 }
 
@@ -104,14 +104,14 @@ void replace_qp_content(struct message_line *ref, FILE *fp) {
 
 	struct qp_encoding_buffer *buf = qp_create_encoding_buffer(75);
 
-	unsigned char line[4096];
+	char line[4096];
 	while(fgets(line, sizeof(line), fp)) {
 
-		qp_encode_chunk(buf, line, strlen((char*)line));
+		qp_encode_chunk(buf, (unsigned char*)line, strlen(line));
 	}
 
 	if( buf->s != NULL )
-		message_line_set_s(ref, buf->s);
+		message_line_set_s(ref, (char *)buf->s);
 	qp_free_encoding_buffer(buf);
 }
 

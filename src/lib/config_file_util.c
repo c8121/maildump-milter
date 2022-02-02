@@ -114,7 +114,7 @@ int read_config(char *filename) {
 			while( *p ) {
 				if( *p != ' ' && *p != '\t' )
 					*o++ = *p;
-				*p++;
+				p++;
 			}
 			*o = '\0';
 
