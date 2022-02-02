@@ -62,7 +62,7 @@ char m_time[20] = "";
  */
 void usage() {
 	printf("Usage:\n");
-	printf("    archivemeta add [-c <created datetime>] [-m <modified datetime>] <hash> <name> <origin> <owner>\n");
+	printf("    archivemetadb add [-t <created datetime>] [-m <modified datetime>] <hash> <name> <origin> <owner>\n");
 
 }
 
@@ -71,14 +71,13 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "c:m:";
+	const char *options = "t:m:";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
 		switch(c) {
 
-		case 'c':
-
+		case 't':
 			if(strlen(optarg) > (sizeof(c_time) - 1)) {
 				fprintf(stderr, "Invalid ctime\n");
 				exit(EX_USAGE);
