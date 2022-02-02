@@ -67,7 +67,17 @@ int verbosity = 0;
  */
 void usage() {
 	printf("Usage:\n");
-	printf("    archivemetadb add [-t <created datetime>] [-m <modified datetime>] <hash> <name> <origin> <owner>\n");
+	printf("	archivemetadb add [-c <config file>] [-v] [-t <created datetime>] [-m <modified datetime>] <hash> <name> <origin> <owner>\n");
+	printf("\n");
+	printf("Options:\n");
+	printf("    -c <path>                 Config file.\n");
+	printf("\n");
+	printf("    -t <yyyy-mm-ss hh:mm:ss>  Create time to be stored\n");
+	printf("\n");
+	printf("    -m <yyyy-mm-ss hh:mm:ss>  Modified time to be stored\n");
+	printf("\n");
+	printf("    -v                        verbosity (can be repeated to increase verbosity)\n");
+	printf("\n");
 
 }
 

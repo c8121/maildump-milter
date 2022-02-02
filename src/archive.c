@@ -78,9 +78,9 @@ int verbosity = 0;
  */
 void usage() {
 	printf("Usage:\n");
-	printf("    archive [-b <storage base dir>] [-p <password file>] [-s <filename suffix>] [-n] add <file>\n");
-	printf("    archive [-b <storage base dir>] get <hash>\n");
-	printf("    archive [-b <storage base dir>] [-p <password file>] copy <hash> <file>\n");
+	printf("    archive [-c <config file>] [-v] [-b <storage base dir>] [-p <password file>] [-s <filename suffix>] [-n] add <file>\n");
+	printf("    archive [-c <config file>] [-v] [-b <storage base dir>] get <hash>\n");
+	printf("    archive [-c <config file>] [-v] [-b <storage base dir>] [-p <password file>] copy <hash> <file>\n");
 	printf("\n");
 	printf("Commands:\n");
 	printf("    add: Add a file to archive\n");

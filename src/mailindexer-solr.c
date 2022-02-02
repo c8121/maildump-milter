@@ -43,17 +43,61 @@
 #include "./lib/char_util.c"
 #include "./lib/message.c"
 #include "./lib/multipart_parser.c"
+#include "./lib/config_file_util.c"
 
 char *add_doc_program = "curl -s -X POST -H 'Content-Type: application/json' 'http://localhost:8983/solr/{{collection}}/update/json/docs' --data-binary '{{json}}'";
 char *add_doc_json_tpl = "./config/solr-add-mail.tpl.json";
+
+char *config_file = NULL;
+
+int verbosity = 0;
 
 /**
  * 
  */
 void usage() {
-	printf("Usage: mailindexer-solr <collection> <ID> <email file> <text-file> [<text-files>...]\n");
+	printf("Usage:\n");
+	printf("	mailindexer-solr [-c <config file>] <collection> <ID> <email file> <text-file> [<text-files>...]\n");
+	printf("\n");
+	printf("Options:\n");
+	printf("    -c <path> Config file.\n");
+	printf("\n");
+	printf("    -v        verbosity (can be repeated to increase verbosity)\n");
+	printf("\n");
 }
 
+/**
+ * Read command line arguments and configure application
+ */
+void configure(int argc, char *argv[]) {
+
+	const char *options = "c:v";
+	int c;
+
+	while ((c = getopt(argc, argv, options)) != -1) {
+		switch(c) {
+			
+		case 'c':
+			config_file = optarg;
+			break;
+
+		case 'v':
+			verbosity++;
+		}
+	}
+	
+	// Read config from file (if option 'c' is present):
+	if( config_file != NULL ) {
+		if( read_config(config_file) == 0 ) {
+			
+			set_config(&add_doc_program, "add_doc_program", 1, 1, 1, verbosity);
+			set_config(&add_doc_json_tpl, "add_doc_json_tpl", 1, 1, 1, verbosity);
+			
+		} else {
+			exit(EX_IOERR);
+		}
+	}
+}
 
 /**
  * Caller must free result
@@ -144,8 +188,10 @@ char *json_string(char *s) {
  * 
  */
 int main(int argc, char *argv[]) {
+	
+	configure(argc, argv);
 
-	if (argc < 4) {
+	if (argc - optind +1 < 5) {
 		fprintf(stderr, "Missing arguments\n");
 		usage();
 		exit(EX_USAGE);
@@ -153,14 +199,14 @@ int main(int argc, char *argv[]) {
 
 	struct stat file_stat;
 
-	char *collection = argv[1];
+	char *collection = argv[optind];
 	if( !collection || strchr(collection, '/') != NULL ) {
 		fprintf(stderr, "Please provide a valid collection name\n");
 		usage();
 		exit(EX_USAGE);
 	}
 
-	char *id = argv[2];
+	char *id = argv[optind + 1];
 	if( !id ) {
 		fprintf(stderr, "Please provide a ID\n");
 		usage();
@@ -181,9 +227,9 @@ int main(int argc, char *argv[]) {
 
 
 
-	char *email_file = argv[3];
+	char *email_file = argv[optind + 2];
 	if( stat(email_file, &file_stat) != 0 ) {
-		fprintf(stderr, "File not found: %s\n", email_file);
+		fprintf(stderr, "E-Mail file not found: %s\n", email_file);
 		exit(EX_IOERR);
 	}
 	//printf("Reading metadata/fields from: %s\n", email_file);
@@ -202,11 +248,11 @@ int main(int argc, char *argv[]) {
 
 	struct char_buffer *buf = NULL;
 	char *text_file;
-	for( int i=4 ; i < argc ; i++ ) {
+	for( int i=optind + 3 ; i < argc ; i++ ) {
 
 		text_file = argv[i];
 		if( stat(text_file, &file_stat) != 0 ) {
-			fprintf(stderr, "File not found: %s\n", text_file);
+			fprintf(stderr, "Text file not found: %s\n", text_file);
 			exit(EX_IOERR);
 		}
 		//printf("Reading text from: %s\n", text_file);
