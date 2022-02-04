@@ -53,17 +53,17 @@
 
 #define MAX_LINE_LENGTH 1024
 
-char *parser_program = "./bin/mailparser -q -t -x \"{{index_text_files_prefix}}\" -f \"{{output_file}}\" \"{{input_file}}\"";
-char *assembler_program = "./bin/mailassembler -q -d \"{{input_file}}\" \"{{output_file}}\"";
+char *parser_program = "{{BINDIR}}/mailparser -q -t -x \"{{index_text_files_prefix}}\" -f \"{{output_file}}\" \"{{input_file}}\"";
+char *assembler_program = "{{BINDIR}}/mailassembler -q -d \"{{input_file}}\" \"{{output_file}}\"";
 
 char *password_file = NULL;
-char *add_to_archive_program = "./bin/archive -n -s \"{{suffix}}\" -p \"{{password_file}}\" add \"{{input_file}}\"";
-char *copy_from_archive_program = "./bin/archive  -s \"{{suffix}}\" -p \"{{password_file}}\" copy {{hash}} \"{{output_file}}\"";
+char *add_to_archive_program = "{{BINDIR}}/archive -n -s \"{{suffix}}\" -p \"{{password_file}}\" add \"{{input_file}}\"";
+char *copy_from_archive_program = "{{BINDIR}}/archive  -s \"{{suffix}}\" -p \"{{password_file}}\" copy {{hash}} \"{{output_file}}\"";
 
-char *archivemetadb_program ="./bin/archivemetadb add {{hash}} \"{{subject}}\" \"{{from}}\" \"{{to}}\"";
+char *archivemetadb_program ="{{BINDIR}}/archivemetadb add {{hash}} \"{{subject}}\" \"{{from}}\" \"{{to}}\"";
 
 char *index_name = NULL;
-char *indexer_program ="./bin/mailindexer-solr {{index_name}} {{hash}} {{message_file}} {{text_files}}";
+char *indexer_program ="{{BINDIR}}/mailindexer-solr {{index_name}} {{hash}} {{message_file}} {{text_files}}";
 
 char *create_files_prefix;
 
@@ -184,6 +184,7 @@ char* add_file_to_archive(char *filename, char *suffix) {
 		command = strreplace_free(command, "{{password_file}}", password_file);
 	else
 		command = strreplace_free(command, "{{password_file}}", "NULL");
+	command = parse_path_free(command);
 
 	//printf("EXEC: %s\n", command);
 	FILE *cmd = popen(command, "r");
@@ -389,6 +390,7 @@ int parse_message(char *filename, char *out_filename) {
 
 	char *command = strreplace(parser_program, "{{input_file}}", filename);
 	command = strreplace_free(command, "{{output_file}}", out_filename);
+	command = parse_path_free(command);
 
 	char index_files_prefix[512];
 	sprintf(index_files_prefix, "%s-index", create_files_prefix);

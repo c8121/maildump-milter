@@ -28,6 +28,18 @@ struct char_buffer {
 
 
 /**
+ * malloc & strcpy
+ * 
+ * Caller must free result
+ */
+char* strcopy(char *s) {
+	char *c = malloc(strlen(s)+1);
+	strcpy(c, s);
+	return c;
+}
+
+
+/**
  * @param cb can be NULL
  * 
  * Caller must free result (use cb_free(*cb))

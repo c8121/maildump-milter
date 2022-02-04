@@ -38,7 +38,7 @@ gcc -Wall -o "$binDir/mailparser" "$sourceDir/mailparser.c" -lmailutils
 gcc -Wall -o "$binDir/mailassembler" "$sourceDir/mailassembler.c" -lmailutils
 
 echo "Build mailindexer"
-gcc -Wall -o "$binDir/mailindexer-solr" "$sourceDir/mailindexer-solr.c" -lmailutils
+gcc -g -Wall -o "$binDir/mailindexer-solr" "$sourceDir/mailindexer-solr.c" -lbsd -lmailutils
 
 echo "Build archive, archivemetadb & mailarchiver"
 gcc -Wall -o "$binDir/archive" "$sourceDir/archive.c" -lbsd

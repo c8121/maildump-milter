@@ -40,13 +40,16 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
+#include <bsd/stdlib.h> //required by file_util
+
 #include "./lib/char_util.c"
+#include "./lib/file_util.c"
 #include "./lib/message.c"
 #include "./lib/multipart_parser.c"
 #include "./lib/config_file_util.c"
 
 char *add_doc_program = "curl -s -X POST -H 'Content-Type: application/json' 'http://localhost:8983/solr/{{collection}}/update/json/docs' --data-binary '{{json}}'";
-char *add_doc_json_tpl = "./config/solr-add-mail.tpl.json";
+char *add_doc_json_tpl = "{{CONFDIR}}/solr-add-mail.tpl.json";
 
 char *config_file = NULL;
 
@@ -79,12 +82,25 @@ void configure(int argc, char *argv[]) {
 			
 		case 'c':
 			config_file = optarg;
+			
+			conf_dir = strcopy(config_file) ;//See file_util.c
+			char *last_slash = strrchr(conf_dir, '/');
+			if( last_slash != NULL ) {
+				*last_slash = '\0';
+			} else {
+				free(conf_dir);
+				conf_dir = ".";
+			}
 			break;
 
 		case 'v':
 			verbosity++;
 		}
 	}
+	
+	// Set default conf_dir if no config file was used (see parse_path(...) on file_util.c)
+	if( conf_dir == NULL )
+		conf_dir = parse_path("{{BINDIR}}/../config");
 	
 	// Read config from file (if option 'c' is present):
 	if( config_file != NULL ) {
@@ -218,6 +234,7 @@ int main(int argc, char *argv[]) {
 	}
 
 
+	add_doc_json_tpl = parse_path(add_doc_json_tpl);
 	if( stat(add_doc_json_tpl, &file_stat) != 0 ) {
 		fprintf(stderr, "JSON Template not found: %s\n", add_doc_json_tpl);
 		exit(EX_IOERR);

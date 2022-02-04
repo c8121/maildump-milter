@@ -17,11 +17,21 @@
  * Author: christian c8121 de
  */
 
+#define PROC_SELF_EXEC "/proc/self/exe" //Linux
+		//FreeBSD: "/proc/curproc/file", buf, bufsize) 
+		//Solaris: "/proc/self/path/a.out
+		
 #define TEMP_PATH_MAX 2048 
 
 char *temp_directory_name = "/tmp";
 
+char *bin_dir = NULL;
+char *conf_dir = NULL;
+
 /**
+ * Creates a path name in temp_directory_name (usually /tmp).
+ * Note: Does not creata a file or directory, returns a new and not existing name only.
+ *
  * Caller must free result
  */
 char* temp_filename(char *prefix, char *suffix) {
@@ -47,4 +57,55 @@ char* temp_filename(char *prefix, char *suffix) {
 
 	fprintf(stderr, "Cannot create temp filename");
 	return NULL;
+}
+
+
+
+/**
+ * Replaces placeholders:
+ * 
+ *   - {{BINDIR}}:  Path of current executable
+ *   - {{CONFDIR}}: Path to location of config-file (conf_dir must be set before)
+ * 
+ * Caller must free result
+ */
+char* parse_path(char *path) {
+	
+	char *result = malloc(strlen(path) + 1);
+	strcpy(result, path);
+	
+	if( strstr(path, "{{BINDIR}}") != NULL ) {
+		
+		if( bin_dir == NULL ) {
+			bin_dir = malloc(TEMP_PATH_MAX);
+			readlink(PROC_SELF_EXEC, bin_dir, TEMP_PATH_MAX);
+			char *last_slash = strrchr(bin_dir, '/');
+			if( last_slash != NULL )
+				*last_slash = '\0';
+		}
+		
+		result = strreplace_free(result, "{{BINDIR}}", bin_dir);
+	}
+	
+	if( strstr(path, "{{CONFDIR}}") != NULL ) {
+		
+		if( conf_dir == NULL ) {
+			fprintf(stderr, "Cannot parse path, conf_dir was not set: %s\n", path);
+			exit(EX_IOERR);
+		}
+		
+		result = strreplace_free(result, "{{CONFDIR}}", conf_dir);
+	}
+	
+	//printf("%s = %s\n", path, result);
+	return result;
+}
+
+/**
+ * Same as parse_path(...), but does free given path-parameter.
+ */
+char* parse_path_free(char* path) {
+	char *result = parse_path(path);
+	free(path);
+	return result;
 }
