@@ -54,6 +54,7 @@
 
 #define MAX_LINE_LENGTH 1024
 
+
 char *parser_program = "{{BINDIR}}/mailparser -q -t -x \"{{index_text_files_prefix}}\" -f \"{{output_file}}\" \"{{input_file}}\"";
 char *assembler_program = "{{BINDIR}}/mailassembler -q -d \"{{input_file}}\" \"{{output_file}}\"";
 
@@ -62,6 +63,7 @@ char *add_to_archive_program = "{{BINDIR}}/archive -c \"{{config_file}}\" -n -s 
 char *copy_from_archive_program = "{{BINDIR}}/archive -c \"{{config_file}}\"  -s \"{{suffix}}\" -p \"{{password_file}}\" copy {{hash}} \"{{output_file}}\"";
 
 char *archivemetadb_program ="{{BINDIR}}/archivemetadb -c \"{{config_file}}\" add {{hash}} \"{{subject}}\" \"{{from}}\" \"{{to}}\"";
+char *empty_address_replacement = "undisclosed";
 
 char *index_name = NULL;
 char *indexer_program ="{{BINDIR}}/mailindexer-solr -c \"{{config_file}}\" {{index_name}} {{hash}} {{message_file}} {{text_files}}";
@@ -148,6 +150,7 @@ void configure(int argc, char *argv[]) {
 			set_config(&copy_from_archive_program, "copy_from_archive_program", 1, 1, 1, verbosity);
 			
 			set_config(&archivemetadb_program, "archivemetadb_program", 1, 1, 1, verbosity);
+			set_config(&empty_address_replacement, "empty_address_replacement", 1, 1, 1, verbosity);
 			
 			set_config(&index_name, "index_name", 1, 1, 1, verbosity);
 			set_config(&indexer_program, "indexer_program", 1, 1, 1, verbosity);
@@ -402,9 +405,20 @@ void add_message_to_archivedb(char *hash, struct message_line *message) {
 
 	char *from = decode_header_value(get_header_value("From", message), 1, 1);
 	char *from_adr = extract_address(from);
+	if( from_adr == NULL || !*from_adr ) {
+		fprintf(stderr, "WARN: From-Header is empty\n");
+		free(from_adr);
+		from_adr = strcopy(empty_address_replacement);
+	}
+		
 
 	char *to = decode_header_value(get_header_value("To", message), 1, 1);
 	char *to_adr = extract_address(to);
+	if( to_adr == NULL || !*to_adr ) {
+		fprintf(stderr, "WARN: To-Header is empty\n");
+		free(to_adr);
+		to_adr = strcopy(empty_address_replacement);
+	}
 
 	char *subject = decode_header_value(get_header_value("Subject", message), 1, 1);
 

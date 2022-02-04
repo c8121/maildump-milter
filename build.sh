@@ -42,7 +42,7 @@ gcc -Wall -o "$binDir/mailindexer-solr" "$sourceDir/mailindexer-solr.c" -lbsd -l
 
 echo "Build archive, archivemetadb & mailarchiver"
 gcc -Wall -o "$binDir/archive" "$sourceDir/archive.c" -lbsd
-gcc -g -Wall -o "$binDir/archivemetadb" "$sourceDir/archivemetadb.c" -lmysqlclient
+gcc -Wall -o "$binDir/archivemetadb" "$sourceDir/archivemetadb.c" -lmysqlclient
 gcc -Wall -o "$binDir/mailarchiver" "$sourceDir/mailarchiver.c" -lbsd -lmailutils
 
 echo "cat-* utils"
