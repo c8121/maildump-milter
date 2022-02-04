@@ -81,15 +81,17 @@ void configure(int argc, char *argv[]) {
 		switch(c) {
 			
 		case 'c':
-			config_file = optarg;
+			if( *optarg ) {
+				config_file = optarg;
 			
-			conf_dir = strcopy(config_file) ;//See file_util.c
-			char *last_slash = strrchr(conf_dir, '/');
-			if( last_slash != NULL ) {
-				*last_slash = '\0';
-			} else {
-				free(conf_dir);
-				conf_dir = ".";
+				conf_dir = strcopy(config_file) ;//See file_util.c
+				char *last_slash = strrchr(conf_dir, '/');
+				if( last_slash != NULL ) {
+					*last_slash = '\0';
+				} else {
+					free(conf_dir);
+					conf_dir = ".";
+				}
 			}
 			break;
 

@@ -93,7 +93,8 @@ void configure(int argc, char *argv[]) {
 		switch(c) {
 			
 		case 'c':
-			config_file = optarg;
+			if( *optarg ) 
+				config_file = optarg;
 			break;
 
 		case 't':

@@ -18,7 +18,7 @@
  */
 
 #define PROC_SELF_EXEC "/proc/self/exe" //Linux
-		//FreeBSD: "/proc/curproc/file", buf, bufsize) 
+		//FreeBSD: "/proc/curproc/file"
 		//Solaris: "/proc/self/path/a.out
 		
 #define TEMP_PATH_MAX 2048 

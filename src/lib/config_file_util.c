@@ -107,7 +107,7 @@ int read_config(char *filename) {
 
 	FILE *fp = fopen(filename, "r");
 	if( fp == NULL ) {
-		fprintf(stderr, "Failed to open file: %s\n", filename);
+		fprintf(stderr, "Failed to open config-file: %s\n", filename);
 		return -1;
 	}
 

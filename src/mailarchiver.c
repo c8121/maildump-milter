@@ -50,6 +50,7 @@
 #include "./lib/file_util.c"
 #include "./lib/message.c"
 #include "./lib/multipart_parser.c"
+#include "./lib/config_file_util.c"
 
 #define MAX_LINE_LENGTH 1024
 
@@ -57,15 +58,20 @@ char *parser_program = "{{BINDIR}}/mailparser -q -t -x \"{{index_text_files_pref
 char *assembler_program = "{{BINDIR}}/mailassembler -q -d \"{{input_file}}\" \"{{output_file}}\"";
 
 char *password_file = NULL;
-char *add_to_archive_program = "{{BINDIR}}/archive -n -s \"{{suffix}}\" -p \"{{password_file}}\" add \"{{input_file}}\"";
-char *copy_from_archive_program = "{{BINDIR}}/archive  -s \"{{suffix}}\" -p \"{{password_file}}\" copy {{hash}} \"{{output_file}}\"";
+char *add_to_archive_program = "{{BINDIR}}/archive -c \"{{config_file}}\" -n -s \"{{suffix}}\" -p \"{{password_file}}\" add \"{{input_file}}\"";
+char *copy_from_archive_program = "{{BINDIR}}/archive -c \"{{config_file}}\"  -s \"{{suffix}}\" -p \"{{password_file}}\" copy {{hash}} \"{{output_file}}\"";
 
-char *archivemetadb_program ="{{BINDIR}}/archivemetadb add {{hash}} \"{{subject}}\" \"{{from}}\" \"{{to}}\"";
+char *archivemetadb_program ="{{BINDIR}}/archivemetadb -c \"{{config_file}}\" add {{hash}} \"{{subject}}\" \"{{from}}\" \"{{to}}\"";
 
 char *index_name = NULL;
-char *indexer_program ="{{BINDIR}}/mailindexer-solr {{index_name}} {{hash}} {{message_file}} {{text_files}}";
+char *indexer_program ="{{BINDIR}}/mailindexer-solr -c \"{{config_file}}\" {{index_name}} {{hash}} {{message_file}} {{text_files}}";
 
 char *create_files_prefix;
+
+
+char *config_file = NULL;
+
+int verbosity = 0;
 
 /**
  * 
@@ -82,9 +88,13 @@ void usage() {
 	printf("    get: Get a e-mail by its ID (hash) from archive\n");
 	printf("\n");
 	printf("Options:\n");
+	printf("    -c <path>       Config file.\n");
+	printf("\n");
 	printf("    -p              Password file. Files will be encrypted when a password is povided.\n");
 	printf("\n");
 	printf("    -i <index name> Index name (Solr collection). Files will be fulltext-indexed when a index name is provided.\n");
+	printf("\n");
+	printf("    -v              verbosity (can be repeated to increase verbosity)\n");
 	printf("\n");
 }
 
@@ -93,12 +103,17 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "p:i:";
+	const char *options = "c:p:i:v";
 	int c;
 
 	while ((c = getopt(argc, argv, options)) != -1) {
 		switch(c) {
 
+		case 'c':
+			if( *optarg ) 
+				config_file = optarg;
+			break;
+			
 		case 'p':
 			password_file = optarg;
 			struct stat file_stat;
@@ -115,7 +130,30 @@ void configure(int argc, char *argv[]) {
 				exit(EX_IOERR);
 			}
 			break;
-
+			
+		case 'v':
+			verbosity++;
+		}
+	}
+	
+	// Read config from file (if option 'c' is present):
+	if( config_file != NULL ) {
+		if( read_config(config_file) == 0 ) {
+			
+			set_config(&parser_program, "parser_program", 1, 1, 1, verbosity);
+			set_config(&assembler_program, "assembler_program", 1, 1, 1, verbosity);
+			
+			set_config(&password_file, "password_file", 1, 1, 1, 0);
+			set_config(&add_to_archive_program, "add_to_archive_program", 1, 1, 1, verbosity);
+			set_config(&copy_from_archive_program, "copy_from_archive_program", 1, 1, 1, verbosity);
+			
+			set_config(&archivemetadb_program, "archivemetadb_program", 1, 1, 1, verbosity);
+			
+			set_config(&index_name, "index_name", 1, 1, 1, verbosity);
+			set_config(&indexer_program, "indexer_program", 1, 1, 1, verbosity);
+			
+		} else {
+			exit(EX_IOERR);
 		}
 	}
 }
@@ -132,6 +170,8 @@ void get_file_from_archive(char *hash, char *suffix, char *dest_filename) {
 		command = strreplace_free(command, "{{password_file}}", password_file);
 	else
 		command = strreplace_free(command, "{{password_file}}", "NULL");
+	command = strreplace_free(command, "{{config_file}}", config_file);
+	command = parse_path_free(command);
 
 	//printf("EXEC: %s\n", command);
 	struct stat file_stat;
@@ -184,6 +224,7 @@ char* add_file_to_archive(char *filename, char *suffix) {
 		command = strreplace_free(command, "{{password_file}}", password_file);
 	else
 		command = strreplace_free(command, "{{password_file}}", "NULL");
+	command = strreplace_free(command, "{{config_file}}", config_file);
 	command = parse_path_free(command);
 
 	//printf("EXEC: %s\n", command);
@@ -326,6 +367,8 @@ void index_message(char *hash, char *message_file) {
 		command = strreplace_free(command, "{{hash}}", hash);
 		command = strreplace_free(command, "{{message_file}}", message_file);
 		command = strreplace_free(command, "{{text_files}}", file_list->s);
+		command = strreplace_free(command, "{{config_file}}", config_file);
+		command = parse_path_free(command);
 
 		//printf("EXEC: %s\n", command);
 		system(command);
@@ -369,8 +412,10 @@ void add_message_to_archivedb(char *hash, struct message_line *message) {
 	command = strreplace_free(command, "{{from}}", strreplace(from_adr, "\"", "\\\""));
 	command = strreplace_free(command, "{{to}}", strreplace(to_adr, "\"", "\\\""));
 	command = strreplace_free(command, "{{subject}}", strreplace(subject, "\"", "\\\""));
+	command = strreplace_free(command, "{{config_file}}", config_file);
+	command = parse_path_free(command);
 	
-	//printf("EXEC: %s\n", command);
+	printf("EXEC: %s\n", command);
 	system(command);
 
 	free(command);
