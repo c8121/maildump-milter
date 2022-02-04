@@ -163,8 +163,6 @@ int get_owner(struct a_owner *owner) {
 		return -1;
 	}
 
-	memset(owner, 0, sizeof(struct a_owner));
-
 	MYSQL_BIND r[2];
 	memset(r, 0, sizeof(r));
 
@@ -279,8 +277,6 @@ int get_origin(struct a_origin *origin) {
 		return -1;
 	}
 
-	memset(origin, 0, sizeof(struct a_origin));
-
 	MYSQL_BIND r[2];
 	memset(r, 0, sizeof(r));
 
@@ -391,8 +387,6 @@ int get_entry(struct a_entry *entry) {
 		fprintf(stderr, "%s\n", db_error(db));
 		return -1;
 	}
-
-	memset(entry, 0, sizeof(struct a_entry));
 
 	MYSQL_BIND r[2];
 	memset(r, 0, sizeof(r));

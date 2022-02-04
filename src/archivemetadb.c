@@ -181,7 +181,8 @@ int main(int argc, char *argv[]) {
 		struct a_entry *e = malloc(sizeof(struct a_entry));
 		memset(e, 0, sizeof(struct a_entry));
 		strcpy(e->hash, hash);
-		strcpy(e->name, name); 
+		strcpy(e->name, name);
+		
 
 		if( get_entry(e) == 0 ) {
 
@@ -192,7 +193,7 @@ int main(int argc, char *argv[]) {
 
 			if( add_entry(e) != 0 ) {
 
-				fprintf(stderr, "Failed to add hash\n");
+				fprintf(stderr, "Failed to add entry\n");
 				exit_c = EX_HASH_FAILED;
 
 			} else {
