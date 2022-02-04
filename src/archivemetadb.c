@@ -198,6 +198,8 @@ int main(int argc, char *argv[]) {
 
 			fprintf(stderr, "Entry: ID=%li, HASH=%s, NAME=%s\n", e->id, e->hash, e->name);
 			exit_c = EX_HASH_EXIST;
+			
+			//TODO: Add ORIGIN and/or OWNER if different
 
 		} else {
 

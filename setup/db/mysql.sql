@@ -1,3 +1,15 @@
+/*
+ Archive Metdatabase DDL
+ 
+ The archive database structure is designed generically.
+ As the archive takes any type of file, the database stores generic metadata.
+ 
+ Each entry is identified by HASH value, created from file content.
+ Each entry has one or more ORIGINs, which can be a sender-email-address or the original file path.
+ Each entry also has one or more OWNERS, which can be recipient-email-address or a user name .
+ 
+*/
+
 CREATE DATABASE archive;
 USE archive;
 
