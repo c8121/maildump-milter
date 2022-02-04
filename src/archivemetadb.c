@@ -47,6 +47,9 @@
 #define EX_ORIGIN_FAILED 4
 #define EX_ENTRY_ORIGIN_FAILED 5
 
+#define MAX_LEN_NAME 254
+#define MAX_LEN_OWNER 254
+
 char *db_host = "localhost";
 unsigned int db_port = 0;
 char *db_user = "archive";
@@ -157,6 +160,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	char *name = argv[optind + 2];
+	if( strlen(name) > MAX_LEN_NAME ) {
+		fprintf(stderr, "WARN: Name to long, truncate\n");
+		*(name + MAX_LEN_NAME) = '\0';
+	}
 
 	char *origin = argv[optind + 3];
 	if( !*origin ) {
@@ -170,6 +177,9 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Owner cannot be empty\n");
 		usage();
 		exit(EX_USAGE);
+	} else if( strlen(owner) > MAX_LEN_OWNER ) {
+		fprintf(stderr, "WARN: Owner to long, truncate\n");
+		*(owner + MAX_LEN_OWNER) = '\0';
 	}
 
 	if( strcasecmp(cmd, "add") == 0 ) {
