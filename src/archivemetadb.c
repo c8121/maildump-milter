@@ -41,6 +41,8 @@
 #include "./lib/db_archive.c"
 #include "./lib/config_file_util.c"
 
+#define CONFIG_SECTION_NAME "mailindexer"
+
 #define EX_HASH_EXIST 1
 #define EX_HASH_FAILED 2
 #define EX_OWNER_FAILED 3
@@ -123,7 +125,7 @@ void configure(int argc, char *argv[]) {
 	
 	// Read config from file (if option 'c' is present):
 	if( config_file != NULL ) {
-		if( read_config(config_file) == 0 ) {
+		if( read_config(config_file, CONFIG_SECTION_NAME) == 0 ) {
 			
 			set_config(&db_host, "db_host", 1, 1, 1, verbosity);
 			set_config_uint(&db_port, "db_port", verbosity);

@@ -59,7 +59,7 @@ char *part_text_filename_prefix = "message-part-text";
 int show_result_filename_only = 0;
 
 int create_text_files = 0;
-char *create_text_files_from = "html pdf doc txt"; //For consistent behaviour provide event text content as seperate text file
+char *create_text_files_from = "html pdf doc txt"; //For consistent behaviour provide every text content as seperate text file
 char *cat_program_tpl = "%s/cat-%s \"{{charset}}\" \"{{input_file}}\" > \"{{output_file}}\"";
 
 char *working_dir = NULL;

@@ -30,6 +30,8 @@
 
 #define _GNU_SOURCE //to enable strcasestr(...)
 
+#define CONFIG_SECTION_NAME "mailindexer"
+
 #define JSON_VALUE_MAX_LENGTH 32000
 
 #include <stdlib.h>
@@ -106,7 +108,7 @@ void configure(int argc, char *argv[]) {
 	
 	// Read config from file (if option 'c' is present):
 	if( config_file != NULL ) {
-		if( read_config(config_file) == 0 ) {
+		if( read_config(config_file, CONFIG_SECTION_NAME) == 0 ) {
 			
 			set_config(&add_doc_program, "add_doc_program", 1, 1, 1, verbosity);
 			set_config(&add_doc_json_tpl, "add_doc_json_tpl", 1, 1, 1, verbosity);

@@ -100,23 +100,72 @@ void set_config_uint(unsigned int *dst, char *name, int verbosity) {
 	
 }
 
+
+/**
+ * Return NULL if it is not a section name,
+ * return the name otherwise.
+ * 
+ * Caller must free result
+ */
+char* __is_section_name(char *line) {
+	
+	char *s = line;
+	//Find start, ignore space && tab
+	while( *s && (*s == ' ' || *s == '\t' || *s == '[')) {
+		if( *s == '[' ) {
+			s++;
+			char *e = s;
+			while( *e ) {
+				if( *e == ']') {
+					char *name = malloc(e - s);
+					strcpy(name, s);
+					name[e - s] = '\0';
+					return name;
+				}
+				e++;
+			}
+		}
+		s++;
+	}
+	
+	return NULL;
+	
+}
+
 /**
  * Return 0 on success
  */
-int read_config(char *filename) {
+int read_config(char *filename, char *section) {
 
 	FILE *fp = fopen(filename, "r");
 	if( fp == NULL ) {
 		fprintf(stderr, "Failed to open config-file: %s\n", filename);
 		return -1;
 	}
+	
+	//printf("Read config from \"%s\" (section=%s)\n", filename, section);
+
+
+	char *curr_section = NULL;
 
 	struct config_item *curr = NULL;
 	struct config_item *prev = NULL;
 	char line[CONFIG_FILE_MAX_LINE_LENGTH];
 	while(fgets(line, sizeof(line), fp)) {
-
+		
 		if( line[0] == '#' )
+			continue;
+		
+		char *check_section = __is_section_name(line);	
+		if( check_section != NULL ) {
+			if( curr_section != NULL )
+				free(curr_section);
+			curr_section = check_section;
+			//printf("****** SECTION %s *****\n", curr_section);
+			continue;
+		}
+		
+		if( section != NULL && curr_section != NULL && strcmp(section, curr_section) != 0 )
 			continue;
 
 		char *div = strchr(line, ':');
@@ -136,9 +185,11 @@ int read_config(char *filename) {
 				p++;
 			}
 			*o = '\0';
+			//printf("   NAME: %s\n", curr->name);
 
 			curr->value = malloc(strlen(div)+1);
 			strcpy(curr->value, div+1);
+			//printf("   VALUE: %s\n", curr->value);
 
 			if( prev != NULL )
 				prev->next = curr;
@@ -156,10 +207,14 @@ int read_config(char *filename) {
 
 			free(curr->value);
 			curr->value = tmp;
+			//printf("   VALUE: %s\n", curr->value);
 		}
 	}
 
 	fclose(fp);
+	
+	if( curr_section != NULL )
+		free(curr_section);
 
 	return 0;
 

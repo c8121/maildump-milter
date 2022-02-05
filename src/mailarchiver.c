@@ -52,6 +52,8 @@
 #include "./lib/multipart_parser.c"
 #include "./lib/config_file_util.c"
 
+#define CONFIG_SECTION_NAME "mailarchiver"
+
 #define MAX_LINE_LENGTH 1024
 
 
@@ -140,7 +142,7 @@ void configure(int argc, char *argv[]) {
 	
 	// Read config from file (if option 'c' is present):
 	if( config_file != NULL ) {
-		if( read_config(config_file) == 0 ) {
+		if( read_config(config_file, CONFIG_SECTION_NAME) == 0 ) {
 			
 			set_config(&parser_program, "parser_program", 1, 1, 1, verbosity);
 			set_config(&assembler_program, "assembler_program", 1, 1, 1, verbosity);

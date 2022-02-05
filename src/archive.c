@@ -46,6 +46,8 @@
 #include "./lib/file_util.c"
 #include "./lib/config_file_util.c"
 
+#define CONFIG_SECTION_NAME "archive"
+
 #define STORAGE_SUBDIR_LENGTH 2
 #define METADATA_FILE_EXTENSION ".meta"
 #define MAX_ARCHIVE_PATH_LENGTH 4096
@@ -156,7 +158,7 @@ void configure(int argc, char *argv[]) {
 	
 	// Read config from file (if option 'c' is present):
 	if( config_file != NULL ) {
-		if( read_config(config_file) == 0 ) {
+		if( read_config(config_file, CONFIG_SECTION_NAME) == 0 ) {
 			
 			set_config(&hash_program, "hash_program", 1, 1, 1, verbosity);
 			
