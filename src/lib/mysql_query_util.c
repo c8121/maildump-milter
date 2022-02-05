@@ -106,49 +106,89 @@ int mysql_filter_query(char *sql, struct query_filter *filter) {
 		query = strappend(query, pos+1, strlen(pos)-1);
 	}
 	
-	printf("COUNT: %i\n", filter_cnt);
-	printf("WHERE: %s\n", where->s);
-	printf("SQL: %s\n", query->s);
+	//printf("SQL: %s\n", query->s);
 	
 	MYSQL_STMT *stmt = NULL;
 	if( __prepare_stmt(&stmt, query->s) != 0 )
 		return -1;
 
-	/*MYSQL_BIND p[5];
+	MYSQL_BIND p[filter_cnt];
 	memset(p, 0, sizeof(p));
-
-	p[0].buffer_type = MYSQL_TYPE_LONG;
-	p[0].buffer = &origin->entry_id;
 	
-	p[1].buffer_type = MYSQL_TYPE_LONG;
-	p[1].buffer = &origin->owner_id;
+	f = filter;
+	int i = 0;
+	while( f != NULL) {
+		
+		p[i].buffer_type = MYSQL_TYPE_STRING;
+		p[i].buffer = f->value;
+		p[i].buffer_length = strlen(f->value);
+		p[i].is_null = 0;
+		
+		f = f->next;
+		i++;
+	}
 
-	p[2].buffer_type = MYSQL_TYPE_LONG;
-	p[2].buffer = &origin->origin_id;
-
-	p[3].buffer_type = MYSQL_TYPE_STRING;
-	p[3].buffer = &origin->c_time;
-	p[3].buffer_length = strlen(origin->c_time);
-
-	p[4].buffer_type = MYSQL_TYPE_STRING;
-	p[4].buffer = &origin->m_time;
-	p[4].buffer_length = strlen(origin->m_time);
-
-	if( mysql_stmt_bind_param(db_add_entry_origin_stmt, p) != 0 ) {
+	if( mysql_stmt_bind_param(stmt, p) != 0 ) {
+		fprintf(stderr, "BIND PARAMS FAILED: %s\n", db_error(db));
+		return -1;
+	}
+	
+	if( mysql_stmt_execute(stmt) != 0 ) {
 		fprintf(stderr, "%s\n", db_error(db));
 		return -1;
 	}
-
-	if( mysql_stmt_execute(db_add_entry_origin_stmt) != 0 ) {
-		fprintf(stderr, "%s\n", db_error(db));
+	
+	//TODO: Read columns as they was selected
+	
+	MYSQL_BIND r[4];
+	memset(r, 0, sizeof(r));
+	
+	char hash[A_MAX_LENGTH_HASH];
+	char name[A_MAX_LENGTH_NAME];
+	char origin[A_MAX_LENGTH_NAME];
+	char owner[A_MAX_LENGTH_NAME];
+	
+	r[0].buffer_type = MYSQL_TYPE_STRING;
+	r[0].buffer = &hash;
+	r[0].buffer_length = A_MAX_LENGTH_HASH;
+	
+	r[1].buffer_type = MYSQL_TYPE_STRING;
+	r[1].buffer = &name;
+	r[1].buffer_length = A_MAX_LENGTH_NAME;
+	
+	r[2].buffer_type = MYSQL_TYPE_STRING;
+	r[2].buffer = &origin;
+	r[2].buffer_length = A_MAX_LENGTH_NAME;
+	
+	r[3].buffer_type = MYSQL_TYPE_STRING;
+	r[3].buffer = &owner;
+	r[3].buffer_length = A_MAX_LENGTH_NAME;
+	
+	if( mysql_stmt_bind_result(stmt, r) != 0 ) {
+		fprintf(stderr, "BIND RESULT FAILED: %s\n", db_error(db));
 		return -1;
 	}
 
-	origin->id = mysql_stmt_insert_id(db_add_entry_origin_stmt);
+	int s;
+	unsigned long cnt = 0;
+	while( 1 ) {
+		s = mysql_stmt_fetch(stmt);
+		if( s == 1 || s == MYSQL_NO_DATA )
+			break;
+			
+		printf("%s\n", hash);
+		printf("   NAME: %s\n", name);
+		printf(" ORIGIN: %s\n", origin);
+		printf("  OWNER: %s\n", owner);
+		
+		cnt++;
+	}
 
-	mysql_stmt_free_result(db_add_entry_origin_stmt);
-	*/
+	printf("TOTAL ITEMS: %ld\n", cnt);
 
+	mysql_stmt_free_result(stmt);
+	__close_stmt(&stmt);
+	
 	return 0;
 }
 

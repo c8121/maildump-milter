@@ -250,30 +250,43 @@ int find(char *term) {
 	// Pre check valid names
 	struct query_filter *f = filter;
 	while( f != NULL ) {
-		if( strcasecmp(f->name, "OWNER") == 0 
-			|| strcasecmp(f->name, "ORIGIN") == 0
-			|| strcasecmp(f->name, "NAME") == 0
-			|| strcasecmp(f->name, "HASH") == 0
-		) {
-			//Okay
+		
+		if( strcasecmp(f->name, "OWNER") == 0 || strcasecmp(f->name, "ORIGIN") == 0 ) {
+			
+			char *tmp = malloc(strlen(f->name)+6);
+			sprintf(tmp, "%s.NAME", f->name);
+			free(f->name);
+			f->name = tmp;
+			
+		} else if( strcasecmp(f->name, "NAME") == 0 || strcasecmp(f->name, "HASH") == 0 ) {
+			
+			char *tmp = malloc(strlen(f->name)+7);
+			sprintf(tmp, "ENTRY.%s", f->name);
+			free(f->name);
+			f->name = tmp;
+			
 		} else {
+			
 			fprintf(stderr, "Invalid column name: \"%s\"\n", f->name);
 			return EX_USAGE;
 		}
+		
 		f = f->next;
 	}
 	
 	
 	mysql_filter_query(
-			"SELECT * FROM ((ENTRY_ORIGIN "
+			"SELECT "
+				"ENTRY.HASH, ENTRY.NAME, "
+				"ORIGIN.NAME AS ORIGIN, "
+				"OWNER.NAME AS OWNER "
+						"FROM ((ENTRY_ORIGIN "
 							"INNER JOIN ENTRY ON ENTRY_ORIGIN.ENTRY=ENTRY.ID) "
 							"INNER JOIN ORIGIN ON ENTRY_ORIGIN.ORIGIN=ORIGIN.ID) "
 							"INNER JOIN OWNER ON ENTRY_ORIGIN.OWNER=OWNER.ID "
 					"WHERE ?;", 
 			filter
 	);
-	
-	//TODO
 	
 	return 0;
 }
@@ -309,10 +322,7 @@ int main(int argc, char *argv[]) {
 			exit(EX_USAGE);
 		}
 		
-		
-		
 		db_open();
-		
 		
 		int exit_c = find(term);
 		
