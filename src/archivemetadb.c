@@ -140,6 +140,105 @@ void configure(int argc, char *argv[]) {
 }
 
 /**
+ * Add or update an entry
+ */
+int add(char *hash, char *name, char *origin, char *owner) {
+	
+	struct a_entry *e = malloc(sizeof(struct a_entry));
+	memset(e, 0, sizeof(struct a_entry));
+	strcpy(e->hash, hash);
+	strcpy(e->name, name);
+	
+
+	if( get_entry(e) == 0 ) {
+
+		fprintf(stderr, "Entry: ID=%li, HASH=%s, NAME=%s\n", e->id, e->hash, e->name);
+		return EX_HASH_EXIST;
+		
+		//TODO: Add ORIGIN and/or OWNER if different
+
+	} else {
+
+		if( add_entry(e) != 0 ) {
+
+			fprintf(stderr, "Failed to add entry\n");
+			return EX_HASH_FAILED;
+
+		} else {
+
+			printf("Entry: ID=%li, HASH=%s, NAME=%s\n", e->id, e->hash, e->name);
+
+			struct a_owner *o = malloc(sizeof(struct a_owner));
+			memset(o, 0, sizeof(struct a_owner));
+			strcpy(o->name, owner);
+
+			if( get_create_owner(o) != 0 ) {
+
+				fprintf(stderr, "Cannot get or create owner\n");
+				return EX_OWNER_FAILED;
+
+			} else {
+
+				//printf("Owner: ID=%li, NAME=%s\n", o->id, o->name);
+
+				struct a_origin *or = malloc(sizeof(struct a_origin));
+				memset(or, 0, sizeof(struct a_origin));
+				strcpy(or->name, origin);
+
+				if( get_create_origin(or) != 0 ) {
+
+					fprintf(stderr, "Cannot get or create origin\n");
+					return EX_ORIGIN_FAILED;
+
+				} else {
+
+					struct a_entry_origin *eo = malloc(sizeof(struct a_entry_origin));
+					memset(eo, 0, sizeof(struct a_entry_origin));
+					eo->entry_id = e->id;
+					eo->owner_id = o->id;
+					eo->origin_id = or->id;
+
+					if( !c_time[0] || !m_time[0] ) {
+
+						time_t secs = time(NULL);
+						struct tm *local = localtime(&secs);
+
+						if( !c_time[0] )
+							sprintf(eo->c_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
+						else
+							strcpy(eo->c_time, c_time);
+
+						if( !m_time[0] )
+							sprintf(eo->m_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
+						else
+							strcpy(eo->m_time, m_time);
+
+					} else {
+
+						strcpy(eo->c_time, c_time);
+						strcpy(eo->m_time, m_time);
+
+					}
+
+					if( add_entry_origin(eo) != 0 ) {
+
+						fprintf(stderr, "Failed to add origin\n");
+						return EX_ENTRY_ORIGIN_FAILED;
+
+					} else {
+
+						//printf("Origin: ID=%li, ORIGIN=%s, CTIME=%s, MTIME=%s\n", eo->id, eo->origin, eo->c_time, eo->m_time);
+						return 0;
+					}
+				}
+			}
+		}
+	}
+}
+
+
+
+/**
  * 
  */
 int main(int argc, char *argv[]) {
@@ -154,132 +253,42 @@ int main(int argc, char *argv[]) {
 
 	char *cmd = argv[optind];
 
-	char *hash = argv[optind + 1];
-	if( !*hash ) {
-		fprintf(stderr, "Hash cannot be empty\n");
-		usage();
-		exit(EX_USAGE);
-	}
-
-	char *name = argv[optind + 2];
-	if( strlen(name) > MAX_LEN_NAME ) {
-		fprintf(stderr, "WARN: Name to long, truncate\n");
-		*(name + MAX_LEN_NAME) = '\0';
-	}
-
-	char *origin = argv[optind + 3];
-	if( !*origin ) {
-		fprintf(stderr, "Origin cannot be empty\n");
-		usage();
-		exit(EX_USAGE);
-	}
-
-	char *owner = argv[optind + 4];
-	if( !*owner ) {
-		fprintf(stderr, "Owner cannot be empty\n");
-		usage();
-		exit(EX_USAGE);
-	} else if( strlen(owner) > MAX_LEN_OWNER ) {
-		fprintf(stderr, "WARN: Owner to long, truncate\n");
-		*(owner + MAX_LEN_OWNER) = '\0';
-	}
-
+	
 	if( strcasecmp(cmd, "add") == 0 ) {
+		
+		char *hash = argv[optind + 1];
+		if( !*hash ) {
+			fprintf(stderr, "Hash cannot be empty\n");
+			usage();
+			exit(EX_USAGE);
+		}
 
-		int exit_c = 0;
+		char *name = argv[optind + 2];
+		if( strlen(name) > MAX_LEN_NAME ) {
+			fprintf(stderr, "WARN: Name to long, truncate\n");
+			*(name + MAX_LEN_NAME) = '\0';
+		}
+
+		char *origin = argv[optind + 3];
+		if( !*origin ) {
+			fprintf(stderr, "Origin cannot be empty\n");
+			usage();
+			exit(EX_USAGE);
+		}
+
+		char *owner = argv[optind + 4];
+		if( !*owner ) {
+			fprintf(stderr, "Owner cannot be empty\n");
+			usage();
+			exit(EX_USAGE);
+		} else if( strlen(owner) > MAX_LEN_OWNER ) {
+			fprintf(stderr, "WARN: Owner to long, truncate\n");
+			*(owner + MAX_LEN_OWNER) = '\0';
+		}
 
 		db_open();
 
-		struct a_entry *e = malloc(sizeof(struct a_entry));
-		memset(e, 0, sizeof(struct a_entry));
-		strcpy(e->hash, hash);
-		strcpy(e->name, name);
-		
-
-		if( get_entry(e) == 0 ) {
-
-			fprintf(stderr, "Entry: ID=%li, HASH=%s, NAME=%s\n", e->id, e->hash, e->name);
-			exit_c = EX_HASH_EXIST;
-			
-			//TODO: Add ORIGIN and/or OWNER if different
-
-		} else {
-
-			if( add_entry(e) != 0 ) {
-
-				fprintf(stderr, "Failed to add entry\n");
-				exit_c = EX_HASH_FAILED;
-
-			} else {
-
-				printf("Entry: ID=%li, HASH=%s, NAME=%s\n", e->id, e->hash, e->name);
-
-				struct a_owner *o = malloc(sizeof(struct a_owner));
-				memset(o, 0, sizeof(struct a_owner));
-				strcpy(o->name, owner);
-
-				if( get_create_owner(o) != 0 ) {
-
-					fprintf(stderr, "Cannot get or create owner\n");
-					exit_c = EX_OWNER_FAILED;
-
-				} else {
-
-					//printf("Owner: ID=%li, NAME=%s\n", o->id, o->name);
-
-					struct a_origin *or = malloc(sizeof(struct a_origin));
-					memset(or, 0, sizeof(struct a_origin));
-					strcpy(or->name, origin);
-
-					if( get_create_origin(or) != 0 ) {
-
-						fprintf(stderr, "Cannot get or create origin\n");
-						exit_c = EX_ORIGIN_FAILED;
-
-					} else {
-
-						struct a_entry_origin *eo = malloc(sizeof(struct a_entry_origin));
-						memset(eo, 0, sizeof(struct a_entry_origin));
-						eo->entry_id = e->id;
-						eo->owner_id = o->id;
-						eo->origin_id = or->id;
-
-						if( !c_time[0] || !m_time[0] ) {
-
-							time_t secs = time(NULL);
-							struct tm *local = localtime(&secs);
-
-							if( !c_time[0] )
-								sprintf(eo->c_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
-							else
-								strcpy(eo->c_time, c_time);
-
-							if( !m_time[0] )
-								sprintf(eo->m_time, "%04d-%02d-%02d %02d:%02d:%02d", local->tm_year+1900, local->tm_mon+1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
-							else
-								strcpy(eo->m_time, m_time);
-
-						} else {
-
-							strcpy(eo->c_time, c_time);
-							strcpy(eo->m_time, m_time);
-
-						}
-
-						if( add_entry_origin(eo) != 0 ) {
-
-							fprintf(stderr, "Failed to add origin\n");
-							exit_c = EX_ENTRY_ORIGIN_FAILED;
-
-						} else {
-
-							//printf("Origin: ID=%li, ORIGIN=%s, CTIME=%s, MTIME=%s\n", eo->id, eo->origin, eo->c_time, eo->m_time);
-
-						}
-					}
-				}
-			}
-		}
+		int exit_c = add(hash, name, origin, owner);
 
 		db_close_all();
 
