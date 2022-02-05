@@ -101,13 +101,25 @@ void db_close(void *c) {
 /**
  * 
  */
+void __close_stmt(MYSQL_STMT **stmt) {
+	if( *stmt != NULL ) {
+		mysql_stmt_close(*stmt);
+		*stmt = NULL;
+	}
+}
+
+/**
+ * 
+ */
 void db_close_all() {
 
-	if( db_add_entry_stmt != NULL )
-		mysql_stmt_close(db_add_entry_stmt);
-
-	if( db_get_entry_stmt != NULL )
-		mysql_stmt_close(db_get_entry_stmt);
+	__close_stmt(&db_get_owner_stmt);
+	__close_stmt(&db_add_owner_stmt);
+	__close_stmt(&db_get_origin_stmt);
+	__close_stmt(&db_add_origin_stmt);
+	__close_stmt(&db_get_entry_stmt);
+	__close_stmt(&db_add_entry_stmt);
+	__close_stmt(&db_add_entry_origin_stmt);
 
 	db_close(db);
 }
