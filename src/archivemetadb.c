@@ -58,7 +58,9 @@ char *db_user = "archive";
 char *db_pwd = NULL;
 char *db_name = "archive";
 
+#include "./lib/char_util.c"
 #include "./lib/mysql_util.c"
+#include "./lib/mysql_query_util.c"
 
 char c_time[20] = "";
 char m_time[20] = "";
@@ -73,6 +75,7 @@ int verbosity = 0;
 void usage() {
 	printf("Usage:\n");
 	printf("	archivemetadb add [-c <config file>] [-v] [-t <created datetime>] [-m <modified datetime>] <hash> <name> <origin> <owner>\n");
+	printf("	archivemetadb find [-c <config file>] [-v] <term>\n");
 	printf("\n");
 	printf("Options:\n");
 	printf("    -c <path>                 Config file.\n");
@@ -237,6 +240,44 @@ int add(char *hash, char *name, char *origin, char *owner) {
 }
 
 
+/**
+ * 
+ */
+int find(char *term) {
+	
+	struct query_filter *filter = create_query_filter_from_term(term);
+	
+	// Pre check valid names
+	struct query_filter *f = filter;
+	while( f != NULL ) {
+		if( strcasecmp(f->name, "OWNER") == 0 
+			|| strcasecmp(f->name, "ORIGIN") == 0
+			|| strcasecmp(f->name, "NAME") == 0
+			|| strcasecmp(f->name, "HASH") == 0
+		) {
+			//Okay
+		} else {
+			fprintf(stderr, "Invalid column name: \"%s\"\n", f->name);
+			return EX_USAGE;
+		}
+		f = f->next;
+	}
+	
+	
+	mysql_filter_query(
+			"SELECT * FROM ((ENTRY_ORIGIN "
+							"INNER JOIN ENTRY ON ENTRY_ORIGIN.ENTRY=ENTRY.ID) "
+							"INNER JOIN ORIGIN ON ENTRY_ORIGIN.ORIGIN=ORIGIN.ID) "
+							"INNER JOIN OWNER ON ENTRY_ORIGIN.OWNER=OWNER.ID "
+					"WHERE ?;", 
+			filter
+	);
+	
+	//TODO
+	
+	return 0;
+}
+
 
 /**
  * 
@@ -245,16 +286,48 @@ int main(int argc, char *argv[]) {
 
 	configure(argc, argv);
 
-	if (argc - optind +1 < 6) {
-		fprintf(stderr, "Missing arguments\n");
+	if (optind >= argc) {
+		fprintf(stderr, "Missing command\n");
 		usage();
 		exit(EX_USAGE);
 	}
 
 	char *cmd = argv[optind];
 
+	if( strcasecmp(cmd, "find") == 0 ) {
+		
+		if (argc - optind +1 < 3) {
+			fprintf(stderr, "Missing arguments\n");
+			usage();
+			exit(EX_USAGE);
+		}
+		
+		char *term = argv[optind + 1];
+		if( !*term ) {
+			fprintf(stderr, "Term cannot be empty\n");
+			usage();
+			exit(EX_USAGE);
+		}
+		
+		
+		
+		db_open();
+		
+		
+		int exit_c = find(term);
+		
+		db_close_all();
+		
+		exit(exit_c);
+		
 	
-	if( strcasecmp(cmd, "add") == 0 ) {
+	} else if( strcasecmp(cmd, "add") == 0 ) {
+		
+		if (argc - optind +1 < 6) {
+			fprintf(stderr, "Missing arguments\n");
+			usage();
+			exit(EX_USAGE);
+		}
 		
 		char *hash = argv[optind + 1];
 		if( !*hash ) {

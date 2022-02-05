@@ -521,5 +521,3 @@ int add_entry_origin(struct a_entry_origin *origin) {
 
 	return 0;
 }
-
-
