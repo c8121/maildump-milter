@@ -72,9 +72,10 @@ struct query_filter* create_query_filter(struct query_filter *prev) {
 
 
 /**
+ * print_s is a template containing '?' as placeholders for column values
  * sql must contain '?', it will be replaced by where-statement
  */
-int mysql_filter_query(char *sql, struct query_filter *filter) {
+int mysql_print_query(char *print_s, char *sql, struct query_filter *filter) {
 
 	struct char_buffer *query = NULL;
 	struct char_buffer *where = NULL;
@@ -138,31 +139,18 @@ int mysql_filter_query(char *sql, struct query_filter *filter) {
 		return -1;
 	}
 	
-	//TODO: Read columns as they was selected
+	int field_cnt = mysql_stmt_field_count(stmt);
+	char column_value[field_cnt][A_MAX_LENGTH_NAME];
 	
-	MYSQL_BIND r[4];
+	MYSQL_BIND r[field_cnt];
 	memset(r, 0, sizeof(r));
 	
-	char hash[A_MAX_LENGTH_HASH];
-	char name[A_MAX_LENGTH_NAME];
-	char origin[A_MAX_LENGTH_NAME];
-	char owner[A_MAX_LENGTH_NAME];
-	
-	r[0].buffer_type = MYSQL_TYPE_STRING;
-	r[0].buffer = &hash;
-	r[0].buffer_length = A_MAX_LENGTH_HASH;
-	
-	r[1].buffer_type = MYSQL_TYPE_STRING;
-	r[1].buffer = &name;
-	r[1].buffer_length = A_MAX_LENGTH_NAME;
-	
-	r[2].buffer_type = MYSQL_TYPE_STRING;
-	r[2].buffer = &origin;
-	r[2].buffer_length = A_MAX_LENGTH_NAME;
-	
-	r[3].buffer_type = MYSQL_TYPE_STRING;
-	r[3].buffer = &owner;
-	r[3].buffer_length = A_MAX_LENGTH_NAME;
+	//Treat all columns as string
+	for( i=0 ; i < field_cnt ; i++ ) {
+		r[i].buffer_type = MYSQL_TYPE_STRING;
+		r[i].buffer = &column_value[i];
+		r[i].buffer_length = A_MAX_LENGTH_NAME;
+	}
 	
 	if( mysql_stmt_bind_result(stmt, r) != 0 ) {
 		fprintf(stderr, "BIND RESULT FAILED: %s\n", db_error(db));
@@ -172,14 +160,22 @@ int mysql_filter_query(char *sql, struct query_filter *filter) {
 	int s;
 	unsigned long cnt = 0;
 	while( 1 ) {
+		
 		s = mysql_stmt_fetch(stmt);
 		if( s == 1 || s == MYSQL_NO_DATA )
 			break;
-			
-		printf("%s\n", hash);
-		printf("   NAME: %s\n", name);
-		printf(" ORIGIN: %s\n", origin);
-		printf("  OWNER: %s\n", owner);
+		
+		i = 0;
+		char *p = print_s;
+		while( *p ) {
+			if( *p == '?' ) {
+				printf("%s", column_value[i]);
+				i++;
+			} else {
+				printf("%c", *p);
+			}
+			p++;
+		}
 		
 		cnt++;
 	}

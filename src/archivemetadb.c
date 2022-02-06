@@ -75,7 +75,16 @@ int verbosity = 0;
 void usage() {
 	printf("Usage:\n");
 	printf("	archivemetadb add [-c <config file>] [-v] [-t <created datetime>] [-m <modified datetime>] <hash> <name> <origin> <owner>\n");
+	printf("\n");
 	printf("	archivemetadb find [-c <config file>] [-v] <term>\n");
+	printf("		Term syntax:\n");
+	printf("			\"FIELD VALUE\" (valid fields: HASH, NAME, ORIGIN, OWNER)\n");
+	printf("			Asterisk can be use at end and beginning of value:\n");
+	printf("			\"FIELD VALUE*\": Field begins with value\n");
+	printf("			\"FIELD *VALUE\": Field ends with value\n");
+	printf("			\"FIELD *VALUE*\": Field contains value\n");
+	printf("			Example:\n");
+	printf("			\"ORIGIN chris*\"\n");
 	printf("\n");
 	printf("Options:\n");
 	printf("    -c <path>                 Config file.\n");
@@ -275,7 +284,13 @@ int find(char *term) {
 	}
 	
 	
-	mysql_filter_query(
+	mysql_print_query(
+	
+			"?\n"
+			"   NAME: ?\n"
+			" ORIGIN: ?\n"
+			"  OWNER: ?\n",
+			
 			"SELECT "
 				"ENTRY.HASH, ENTRY.NAME, "
 				"ORIGIN.NAME AS ORIGIN, "
