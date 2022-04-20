@@ -49,6 +49,16 @@ Optional:
 To dump all mails from Postfix, a postfix milter must be set up.
 For more information about milters see http://www.postfix.org/MILTER_README.html
 
+Usage: `maildump` should be used as a service, see below.
+
+`maildump [-s <path>] [-o <path>] [-f <name>] [-t <name>]`
+
+Parameter     | Description
+--------------| -----------
+s             | Socket path (default: /var/spool/postfix/maildump/maildump.socket)
+o             | output directory (default: /var/spool/postfix/maildump)
+f             | Envelope-From header name (default: X-ARCHIVED-FROM, empty to omit)
+t             | Envelope Rcpt-To header name (default: X-ARCHIVED-RCPT, emtpy to omit)
 
  #### Create directory
 
