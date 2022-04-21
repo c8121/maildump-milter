@@ -5,6 +5,8 @@ Created to add incoming mails to a mail archive.
 
 Tested with Postfix (1000+ mails per minute)
 
+
+
 ## Overview
 
 ### maildump
@@ -43,8 +45,15 @@ Optional:
 
     apt install catdoc
     apt install html2text
+    
+### Build
 
-### maildump
+Use the `./build.sh` script to create the binaries in `./bin` 
+
+
+
+
+## maildump
 
 To dump all mails from Postfix, a postfix milter must be set up.
 For more information about milters see http://www.postfix.org/MILTER_README.html
@@ -60,13 +69,13 @@ o             | output directory (default: /var/spool/postfix/maildump)
 f             | Envelope-From header name (default: X-ARCHIVED-FROM, empty to omit)
 t             | Envelope Rcpt-To header name (default: X-ARCHIVED-RCPT, emtpy to omit)
 
- #### Create directory
+ ### Create directory
 
     mkdir /var/spool/postfix/maildump/
     chown postfix /var/spool/postfix/maildump/
 
 
- #### Edit `/etc/postfix/main.cf`:
+ ### Edit `/etc/postfix/main.cf`:
 
     smtpd_milters = unix:/var/spool/postfix/maildump/maildump.socket
     non_smtpd_milters = unix:/var/spool/postfix/maildump/maildump.socket
@@ -77,7 +86,7 @@ t             | Envelope Rcpt-To header name (default: X-ARCHIVED-RCPT, emtpy to
     non_smtpd_milters = unix:/maildump/maildump.socket
 
 
-#### Run maildump
+### Run maildump
 
 You can test if the milter is working by launching it as user postfix:
      
@@ -87,7 +96,7 @@ Now send a message to your Postfix server and check output of command above.
 Message files will be stored in `/var/spool/postfix/maildump/` with filename `<timestamp>-<random>.msg`
 
 
-#### Setup maildump daemon as systemd service
+### Setup maildump daemon as systemd service
 
 See unit-file `setup/systemd/maildump-milter.service`
 
@@ -98,7 +107,7 @@ Enable the service with `systemctl maildump-milter enable`
 You can start and stop the service using `systemctl maildump-milter start` and `systemctl maildump-milter stop`
 
 
-### mailforward
+## mailforward
 
 The `mailforward` program reads a message file and sends it to a SMTP-Server.
 No configration required.
