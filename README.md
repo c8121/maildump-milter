@@ -46,9 +46,13 @@ Optional:
     apt install catdoc
     apt install html2text
     
-### Build
+### Download & Build
 
-Use the `./build.sh` script to create the binaries in `./bin` 
+    git clone https://github.com/c8121/maildump-milter.git
+    cd maildump-milter
+    ./build.sh
+
+Binaries will be created in `./bin` 
 
 
 
