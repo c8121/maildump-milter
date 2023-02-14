@@ -15,10 +15,7 @@
 
 #define _GNU_SOURCE //to enable strcasestr(...)
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <sysexits.h>
-#include <sys/stat.h>
 #include <string.h>
 
 #include "./lib/cat_util.c"

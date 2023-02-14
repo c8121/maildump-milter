@@ -17,8 +17,12 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_QUERY_UTIL
+#define MM_QUERY_UTIL
 
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 struct query_filter {
 	char *name;
@@ -258,3 +262,5 @@ struct query_filter* create_query_filter_from_term(char *term) {
 	
 	return result;
 }
+
+#endif //MM_QUERY_UTIL

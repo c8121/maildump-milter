@@ -34,8 +34,6 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
-#include <bsd/stdlib.h> //required by file_util
-
 #include <libmilter/mfapi.h>
 
 #include "./lib/char_util.c"

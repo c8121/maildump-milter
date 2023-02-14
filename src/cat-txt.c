@@ -13,11 +13,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <sysexits.h>
-#include <sys/stat.h>
-#include <string.h>
 
 #include "./lib/cat_util.c"
 #include "./lib/char_util.c"

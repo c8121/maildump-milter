@@ -17,7 +17,14 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_NET_UTIL
+#define MM_NET_UTIL
+
+#include <stdio.h>
+#include <string.h>
 #include <errno.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 /**
  * 
@@ -140,3 +147,5 @@ void smtp_write(int socket, char *data) {
 	}
 	write(socket, data, strlen(data));
 }
+
+#endif //MM_NET_UTIL

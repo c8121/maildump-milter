@@ -40,8 +40,6 @@
 #include <sysexits.h>
 #include <sys/stat.h>
 
-#include <bsd/stdlib.h> //required by file_util
-
 #include "./lib/char_util.c"
 #include "./lib/file_util.c"
 #include "./lib/config_file_util.c"

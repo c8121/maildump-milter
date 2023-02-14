@@ -17,6 +17,12 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_CHAR_UTIL
+#define MM_CHAR_UTIL
+
+#include <stdlib.h>
+#include <string.h>
+
 #define CHAR_BUFFER_INITIAL_SIZE 4096
 #define CHAR_BUFFER_MAX_MALLOC_SIZE 409600
 
@@ -240,3 +246,5 @@ char* strreplace_free(char *s, char *f, char *r) {
 
 	return result;
 }
+
+#endif //MM_CHAR_UTIL

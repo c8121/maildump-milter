@@ -35,14 +35,11 @@
 #define JSON_VALUE_MAX_LENGTH 32000
 
 #include <stdlib.h>
-#include <time.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sysexits.h>
 #include <sys/stat.h>
-
-#include <bsd/stdlib.h> //required by file_util
 
 #include "./lib/char_util.c"
 #include "./lib/file_util.c"

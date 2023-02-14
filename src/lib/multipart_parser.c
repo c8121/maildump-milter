@@ -17,6 +17,12 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_MULTIPART_PARSER
+#define MM_MULTIPART_PARSER
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #include <mailutils/mime.h>
 #include <ctype.h>
@@ -367,3 +373,5 @@ void find_parts(struct message_line *message, void (*handle_part_function)(void 
 		curr = curr->next;
 	}
 }
+
+#endif //MM_MULTIPART_PARSER

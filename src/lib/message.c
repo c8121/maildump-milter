@@ -17,6 +17,13 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_MESSAGE
+#define MM_MESSAGE
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
 #define MAX_LINE_LENGTH 1024
 
 
@@ -125,3 +132,5 @@ struct message_line *read_message(char *filename) {
 
 	return message;
 }
+
+#endif //MM_MESSAGE

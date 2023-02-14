@@ -8,6 +8,13 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_QP
+#define MM_QP
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
 #define HEX "0123456789ABCDEF"
 
 #define QP_MAX_MALLOC_SIZE 4096
@@ -206,3 +213,4 @@ void qp_decode_chunk(struct qp_decoding_buffer *buf, unsigned char *s, size_t le
 	free(out);
 }
 
+#endif //MM_QP

@@ -17,6 +17,14 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_CAT_UTIL
+#define MM_CAT_UTIL
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sysexits.h>
+
 char *cat_util_charset;
 char *cat_util_inputfile;
 
@@ -50,3 +58,5 @@ void configure(int argc, char *argv[]) {
 		exit(EX_USAGE);
 	}
 }
+
+#endif //MM_CAT_UTIL

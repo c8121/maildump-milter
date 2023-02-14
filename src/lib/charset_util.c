@@ -17,6 +17,13 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_CHARSET_UTIL
+#define MM_CHARSET_UTIL
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 /**
  * Caller must free result
  */
@@ -135,3 +142,5 @@ char *charset_validate_string(char *s) {
 
 	return result;
 }
+
+#endif //MM_CHARSET_UTIL

@@ -23,10 +23,13 @@
  * 
  */
 
+#ifndef MM_MYSQL_UTIL
+#define MM_MYSQL_UTIL
 
 #include <mysql/mysql.h>
 
 #include "charset_util.c"
+#include "db_archive.c"
 
 void *db;
 
@@ -521,3 +524,5 @@ int add_entry_origin(struct a_entry_origin *origin) {
 
 	return 0;
 }
+
+#endif //MM_MYSQL_UTIL

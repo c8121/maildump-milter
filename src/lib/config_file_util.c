@@ -17,6 +17,13 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_CONFIG_FILE_UTIL
+#define MM_CONFIG_FILE_UTIL
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
 #define CONFIG_FILE_MAX_LINE_LENGTH 1024
 
 struct config_item {
@@ -219,3 +226,5 @@ int read_config(char *filename, char *section) {
 	return 0;
 
 }
+
+#endif //MM_CONFIG_FILE_UTIL

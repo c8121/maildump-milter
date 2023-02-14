@@ -8,6 +8,13 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_BASE64
+#define MM_BASE64
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #define BASE64 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 #define BASE64_MAX_MALLOC_SIZE 4206592 //4MB
@@ -305,3 +312,4 @@ void base64_decode_chunk(struct base64_decoding_buffer *buf, unsigned char *s, s
 	buf->encoded = NULL;
 }
 
+#endif //MM_BASE64

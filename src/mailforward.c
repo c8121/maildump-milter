@@ -28,12 +28,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netdb.h> 
 #include <sysexits.h>
 
 #include "./lib/message.c"

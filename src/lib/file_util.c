@@ -17,6 +17,14 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_FILE_UTIL
+#define MM_FILE_UTIL
+
+#include <string.h>
+#include <time.h>
+
+#include <bsd/stdlib.h>
+
 #define PROC_SELF_EXEC "/proc/self/exe" //Linux
 		//FreeBSD: "/proc/curproc/file"
 		//Solaris: "/proc/self/path/a.out
@@ -109,3 +117,5 @@ char* parse_path_free(char* path) {
 	free(path);
 	return result;
 }
+
+#endif //MM_FILE_UTIL

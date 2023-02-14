@@ -17,6 +17,9 @@
  * Author: christian c8121 de
  */
 
+#ifndef MM_DB_ARCHIVE
+#define MM_DB_ARCHIVE
+
 #define A_MAX_LENGTH_HASH 65
 #define A_MAX_LENGTH_NAME 254
 #define A_MAX_LENGTH_ORIGIN 4069
@@ -46,3 +49,4 @@ struct a_entry_origin{
 	char m_time[20];
 };
 
+#endif //MM_DB_ARCHIVE
