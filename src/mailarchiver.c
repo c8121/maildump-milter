@@ -472,6 +472,7 @@ int assemble_message(char *filename, char *out_filename) {
 
     char *command = strreplace(assembler_program, "{{input_file}}", filename);
     command = strreplace_free(command, "{{output_file}}", out_filename);
+    command = parse_path_free(command);
 
     //printf("EXEC: %s\n", command);
     int r = system(command);
