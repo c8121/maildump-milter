@@ -134,7 +134,7 @@ void configure(int argc, char *argv[]) {
             case 'p':
                 password_file = optarg;
                 if (strcmp(password_file, "NULL") !=
-                    0) { //Passing NULL to actively omit passwort (convinient for program mailarchiver to omit passwort)
+                    0) { //Passing NULL to actively omit password (convenient for program mailarchiver to omit password)
                     struct stat file_stat;
                     if (stat(password_file, &file_stat) != 0) {
                         fprintf(stderr, "Password file not found: %s\n", password_file);
@@ -243,7 +243,9 @@ int cp(char *source, char *dest, int create_dir) {
         if (stat(dirname, &file_stat) != 0) {
             command = strreplace(mkdir_program, "{{dirname}}", dirname);
             //printf("EXEC %s\n", command);
-            if (system(command) == 0) {
+            int ret = system(command);
+            free(command);
+            if (ret == 0) {
                 if (stat(dirname, &file_stat) != 0) {
                     fprintf(stderr, "Failed to create directory: %s\n", dirname);
                     return -1;
@@ -251,14 +253,15 @@ int cp(char *source, char *dest, int create_dir) {
             } else {
                 return -1;
             }
-            free(command);
         }
     }
 
     command = strreplace(copy_program, "{{input_file}}", source);
     command = strreplace_free(command, "{{output_file}}", dest);
     //printf("EXEC %s\n", command);
-    if (system(command) == 0) {
+    int ret = system(command);
+    free(command);
+    if (ret == 0) {
         if (stat(dest, &file_stat) != 0)
             return -1;
         else
@@ -266,7 +269,6 @@ int cp(char *source, char *dest, int create_dir) {
     } else {
         return -1;
     }
-    free(command);
 }
 
 /**
@@ -293,6 +295,7 @@ char *encode_file(char *filename) {
         free(command);
 
         out_filename = tmp_filename;
+        free(tmp_filename);
         in_filename = out_filename; //Input for next encoder step
     }
 
@@ -314,6 +317,7 @@ char *encode_file(char *filename) {
         if (strcmp(in_filename, filename) != 0)
             unlink(in_filename); //Delete result from previous step
         out_filename = tmp_filename;
+        free(tmp_filename);
     }
 
     return out_filename;
@@ -345,6 +349,7 @@ char *decode_file(char *filename) {
         free(command);
 
         out_filename = tmp_filename;
+        free(tmp_filename);
         in_filename = out_filename; //Input for next encoder step
     }
 
@@ -364,6 +369,7 @@ char *decode_file(char *filename) {
         if (strcmp(in_filename, filename) != 0)
             unlink(in_filename); //Delete result from previous step
         out_filename = tmp_filename;
+        free(tmp_filename);
     }
 
     return out_filename;
@@ -620,6 +626,8 @@ void add_to_archive(int argc, char *argv[]) {
             unlink(source_file);
         free(source_file);
     }
+
+    free(hash);
 }
 
 /**
