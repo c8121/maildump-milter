@@ -295,7 +295,6 @@ char *encode_file(char *filename) {
         free(command);
 
         out_filename = tmp_filename;
-        free(tmp_filename);
         in_filename = out_filename; //Input for next encoder step
     }
 
@@ -317,7 +316,6 @@ char *encode_file(char *filename) {
         if (strcmp(in_filename, filename) != 0)
             unlink(in_filename); //Delete result from previous step
         out_filename = tmp_filename;
-        free(tmp_filename);
     }
 
     return out_filename;
@@ -349,7 +347,6 @@ char *decode_file(char *filename) {
         free(command);
 
         out_filename = tmp_filename;
-        free(tmp_filename);
         in_filename = out_filename; //Input for next encoder step
     }
 
@@ -369,7 +366,6 @@ char *decode_file(char *filename) {
         if (strcmp(in_filename, filename) != 0)
             unlink(in_filename); //Delete result from previous step
         out_filename = tmp_filename;
-        free(tmp_filename);
     }
 
     return out_filename;
