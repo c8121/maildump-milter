@@ -45,13 +45,13 @@ int delete_input_files = 0;
  * 
  */
 void usage() {
-	printf("Usage: mailassembler [-q] [-d] <parsed file> <output file>\n");
-	printf("\n");
-	printf("Options:\n");
-	printf("    -q  Quiet: No output besides the filename of message file.\n");
-	printf("\n");
-	printf("    -d  Delete input files after all files have been assembled to a message file.\n");
-	printf("\n");
+    printf("Usage: mailassembler [-q] [-d] <parsed file> <output file>\n");
+    printf("\n");
+    printf("Options:\n");
+    printf("    -q  Quiet: No output besides the filename of message file.\n");
+    printf("\n");
+    printf("    -d  Delete input files after all files have been assembled to a message file.\n");
+    printf("\n");
 }
 
 /**
@@ -59,21 +59,21 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "qd";
-	int c;
+    const char *options = "qd";
+    int c;
 
-	while ((c = getopt(argc, argv, options)) != -1) {
-		switch(c) {
+    while ((c = getopt(argc, argv, options)) != -1) {
+        switch (c) {
 
-		case 'q':
-			show_result_filename_only = 1;
-			break;
+            case 'q':
+                show_result_filename_only = 1;
+                break;
 
-		case 'd':
-			delete_input_files = 1;
-			break;
-		}
-	}
+            case 'd':
+                delete_input_files = 1;
+                break;
+        }
+    }
 }
 
 
@@ -82,19 +82,19 @@ void configure(int argc, char *argv[]) {
  */
 void replace_base64_content(struct message_line *ref, FILE *fp) {
 
-	struct base64_encoding_buffer *buf = base64_create_encoding_buffer(75);
-	
-	int chunk_size = 4002; //must be devidable by 3
-	unsigned char chunk[chunk_size];
-	int r;
-	while((r = fread(chunk, 1, chunk_size, fp))) {
+    struct base64_encoding_buffer *buf = base64_create_encoding_buffer(75);
 
-		base64_encode_chunk(buf, chunk, r);
-	}
+    int chunk_size = 4002; //must be devidable by 3
+    unsigned char chunk[chunk_size];
+    int r;
+    while ((r = fread(chunk, 1, chunk_size, fp))) {
 
-	if( buf->s != NULL )
-		message_line_set_s(ref, (char *)buf->s);
-	base64_free_encoding_buffer(buf);
+        base64_encode_chunk(buf, chunk, r);
+    }
+
+    if (buf->s != NULL)
+        message_line_set_s(ref, (char *) buf->s);
+    base64_free_encoding_buffer(buf);
 }
 
 /**
@@ -102,17 +102,17 @@ void replace_base64_content(struct message_line *ref, FILE *fp) {
  */
 void replace_qp_content(struct message_line *ref, FILE *fp) {
 
-	struct qp_encoding_buffer *buf = qp_create_encoding_buffer(75);
+    struct qp_encoding_buffer *buf = qp_create_encoding_buffer(75);
 
-	char line[4096];
-	while(fgets(line, sizeof(line), fp)) {
+    char line[4096];
+    while (fgets(line, sizeof(line), fp)) {
 
-		qp_encode_chunk(buf, (unsigned char*)line, strlen(line));
-	}
+        qp_encode_chunk(buf, (unsigned char *) line, strlen(line));
+    }
 
-	if( buf->s != NULL )
-		message_line_set_s(ref, (char *)buf->s);
-	qp_free_encoding_buffer(buf);
+    if (buf->s != NULL)
+        message_line_set_s(ref, (char *) buf->s);
+    qp_free_encoding_buffer(buf);
 }
 
 /**
@@ -120,15 +120,15 @@ void replace_qp_content(struct message_line *ref, FILE *fp) {
  */
 void replace_unencoded_content(struct message_line *ref, FILE *fp) {
 
-	struct message_line *append = NULL;
+    struct message_line *append = NULL;
 
-	char line[MAX_LINE_LENGTH];
-	while(fgets(line, sizeof(line), fp)) {
+    char line[MAX_LINE_LENGTH];
+    while (fgets(line, sizeof(line), fp)) {
 
-		append = append == NULL ? ref : message_line_create(append, NULL);
-		message_line_set_s(append, line);
+        append = append == NULL ? ref : message_line_create(append, NULL);
+        message_line_set_s(append, line);
 
-	}
+    }
 }
 
 /**
@@ -136,40 +136,40 @@ void replace_unencoded_content(struct message_line *ref, FILE *fp) {
  */
 void replace_content(struct message_line *ref, char *encoding, char *filename) {
 
-	struct stat file_stat;
-	if( stat(filename, &file_stat) != 0 ) {
-		fprintf(stderr, "File not found: %s\n", filename);
-		exit(EX_IOERR);
-	}
+    struct stat file_stat;
+    if (stat(filename, &file_stat) != 0) {
+        fprintf(stderr, "File not found: %s\n", filename);
+        exit(EX_IOERR);
+    }
 
-	FILE *fp = fopen(filename, "rb");
-	if( fp == NULL ) {
-		fprintf(stderr, "Failed to open file: %s\n", filename);
-		exit(EX_IOERR);
-	}
+    FILE *fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        fprintf(stderr, "Failed to open file: %s\n", filename);
+        exit(EX_IOERR);
+    }
 
-	if( show_result_filename_only != 1 ) {
-		printf("    Loading part from: %s\n", filename);
-		printf("    Encoding: %s\n", encoding);
-	}
+    if (show_result_filename_only != 1) {
+        printf("    Loading part from: %s\n", filename);
+        printf("    Encoding: %s\n", encoding);
+    }
 
-	if( !encoding ) {
-		replace_unencoded_content(ref, fp);
-	} else if( strcasestr(encoding, "quoted-printable") != NULL ) {
-		replace_qp_content(ref, fp);
-	} else if( strcasestr(encoding, "base64") != NULL ) {
-		replace_base64_content(ref, fp);
-	} else {
-		replace_unencoded_content(ref, fp);
-	}
+    if (!encoding) {
+        replace_unencoded_content(ref, fp);
+    } else if (strcasestr(encoding, "quoted-printable") != NULL) {
+        replace_qp_content(ref, fp);
+    } else if (strcasestr(encoding, "base64") != NULL) {
+        replace_base64_content(ref, fp);
+    } else {
+        replace_unencoded_content(ref, fp);
+    }
 
-	fclose(fp);
+    fclose(fp);
 
-	if( delete_input_files == 1 ) {
-		if( show_result_filename_only != 1 )
-			printf("Delete %s\n", filename);
-		unlink(filename);
-	}
+    if (delete_input_files == 1) {
+        if (show_result_filename_only != 1)
+            printf("Delete %s\n", filename);
+        unlink(filename);
+    }
 }
 
 
@@ -178,23 +178,23 @@ void replace_content(struct message_line *ref, char *encoding, char *filename) {
  */
 void find_file_references(void *start, void *end) {
 
-	char *encoding = get_header_value("Content-Transfer-Encoding", start);
+    char *encoding = get_header_value("Content-Transfer-Encoding", start);
 
-	struct message_line *curr = start;
-	while( curr != NULL && curr != end ) {
+    struct message_line *curr = start;
+    while (curr != NULL && curr != end) {
 
-		if( strncmp("{{REF((", curr->s, 7) == 0 ) {
-			char *e = strstr(curr->s, "))}}");
-			char *s = curr->s + 7;
-			char filename[e-s+1];
-			strncpy(filename, s, e-s);
-			filename[e-s] = '\0';
+        if (strncmp("{{REF((", curr->s, 7) == 0) {
+            char *e = strstr(curr->s, "))}}");
+            char *s = curr->s + 7;
+            char filename[e - s + 1];
+            strncpy(filename, s, e - s);
+            filename[e - s] = '\0';
 
-			replace_content(curr, encoding, filename);
-		}
+            replace_content(curr, encoding, filename);
+        }
 
-		curr = curr->next;
-	}
+        curr = curr->next;
+    }
 }
 
 /**
@@ -202,24 +202,24 @@ void find_file_references(void *start, void *end) {
  */
 void save_message(struct message_line *start, char *filename) {
 
-	FILE *fp = fopen(filename, "w");
-	if( fp == NULL ) {
-		fprintf(stderr, "Failed to create file: %s\n", filename);
-		return;
-	}
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+        fprintf(stderr, "Failed to create file: %s\n", filename);
+        return;
+    }
 
-	struct message_line *curr = start;
-	while( curr != NULL ) {
-		fwrite(curr->s, 1, strlen(curr->s), fp);
-		curr = curr->next;
-	}
+    struct message_line *curr = start;
+    while (curr != NULL) {
+        fwrite(curr->s, 1, strlen(curr->s), fp);
+        curr = curr->next;
+    }
 
-	fclose(fp);
+    fclose(fp);
 
-	if( show_result_filename_only != 1 )
-		printf("Saved parsed message: %s\n", filename);
-	else
-		printf("%s\n", filename);
+    if (show_result_filename_only != 1)
+        printf("Saved parsed message: %s\n", filename);
+    else
+        printf("%s\n", filename);
 }
 
 /**
@@ -227,45 +227,45 @@ void save_message(struct message_line *start, char *filename) {
  */
 int main(int argc, char *argv[]) {
 
-	configure(argc, argv);
+    configure(argc, argv);
 
-	if (argc - optind +1 < 3) {
-		fprintf(stderr, "Missing arguments\n");
-		usage();
-		exit(EX_USAGE);
-	}
+    if (argc - optind + 1 < 3) {
+        fprintf(stderr, "Missing arguments\n");
+        usage();
+        exit(EX_USAGE);
+    }
 
-	char *message_file = argv[optind];
-	struct stat file_stat;
-	if( stat(message_file, &file_stat) != 0 ) {
-		fprintf(stderr, "File not found: %s\n", message_file);
-		exit(EX_IOERR);
-	}
+    char *message_file = argv[optind];
+    struct stat file_stat;
+    if (stat(message_file, &file_stat) != 0) {
+        fprintf(stderr, "File not found: %s\n", message_file);
+        exit(EX_IOERR);
+    }
 
-	char *destination_file = argv[optind + 1];
-	if( stat(destination_file, &file_stat) == 0 ) {
-		fprintf(stderr, "Destination file already exists: %s\n", destination_file);
-		exit(EX_IOERR);
-	}
+    char *destination_file = argv[optind + 1];
+    if (stat(destination_file, &file_stat) == 0) {
+        fprintf(stderr, "Destination file already exists: %s\n", destination_file);
+        exit(EX_IOERR);
+    }
 
-	struct message_line *message = read_message(message_file);
-	if( message != NULL ) {
-		
-		//Parts
-		find_parts(message, &find_file_references, show_result_filename_only == 1 ? 0 : 1);
-		
-		//Message itself
-		find_file_references(message, NULL);
-		
-		save_message(message, destination_file);
+    struct message_line *message = read_message(message_file);
+    if (message != NULL) {
 
-		if( delete_input_files == 1 ) {
-			if( show_result_filename_only != 1 )
-				printf("Delete %s\n", message_file);
-			unlink(message_file);
-		}
+        //Parts
+        find_parts(message, &find_file_references, show_result_filename_only == 1 ? 0 : 1);
 
-	} else {
-		fprintf(stderr, "Ignore empty file\n");
-	}
+        //Message itself
+        find_file_references(message, NULL);
+
+        save_message(message, destination_file);
+
+        if (delete_input_files == 1) {
+            if (show_result_filename_only != 1)
+                printf("Delete %s\n", message_file);
+            unlink(message_file);
+        }
+
+    } else {
+        fprintf(stderr, "Ignore empty file\n");
+    }
 }
