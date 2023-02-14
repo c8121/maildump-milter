@@ -91,8 +91,10 @@ void replace_base64_content(struct message_line *ref, FILE *fp) {
         base64_encode_chunk(buf, chunk, r);
     }
 
-    if (buf->s != NULL)
+    if (buf->s != NULL) {
         message_line_set_s(ref, (char *) buf->s);
+        message_line_create(ref, "\r\n"); //Add newline at end of base64 block
+    }
     base64_free_encoding_buffer(buf);
 }
 
