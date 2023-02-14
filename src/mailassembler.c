@@ -18,13 +18,12 @@
  */
 
 /*
- * Counterpart to mailparser: Rebiuld a message file which was parsed by mailparser 
+ * Counterpart to mailparser: Rebuild a message file which was parsed by mailparser
  */
 
 #define _GNU_SOURCE //to enable strcasestr(...)
 
 #include <stdlib.h>
-#include <time.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -84,7 +83,7 @@ void replace_base64_content(struct message_line *ref, FILE *fp) {
 
     struct base64_encoding_buffer *buf = base64_create_encoding_buffer(75);
 
-    int chunk_size = 4002; //must be devidable by 3
+    int chunk_size = 4002; //must be dividable by 3
     unsigned char chunk[chunk_size];
     int r;
     while ((r = fread(chunk, 1, chunk_size, fp))) {
@@ -217,7 +216,7 @@ void save_message(struct message_line *start, char *filename) {
     fclose(fp);
 
     if (show_result_filename_only != 1)
-        printf("Saved parsed message: %s\n", filename);
+        printf("Saved assembled message: %s\n", filename);
     else
         printf("%s\n", filename);
 }
