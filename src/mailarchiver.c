@@ -94,7 +94,7 @@ void usage() {
 	printf("Options:\n");
 	printf("    -c <path>       Config file.\n");
 	printf("\n");
-	printf("    -p              Password file. Files will be encrypted when a password is povided.\n");
+	printf("    -p              Password file. Files will be encrypted when a password is provided.\n");
 	printf("\n");
 	printf("    -i <index name> Index name (Solr collection). Files will be fulltext-indexed when a index name is provided.\n");
 	printf("\n");
