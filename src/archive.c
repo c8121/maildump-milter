@@ -77,34 +77,34 @@ int verbosity = 0;
  * 
  */
 void usage() {
-	printf("Usage:\n");
-	printf("    archive [-c <config file>] [-v] [-b <storage base dir>] [-p <password file>] [-s <filename suffix>] [-n] add <file>\n");
-	printf("    archive [-c <config file>] [-v] [-b <storage base dir>] get <hash>\n");
-	printf("    archive [-c <config file>] [-v] [-b <storage base dir>] [-p <password file>] copy <hash> <file>\n");
-	printf("\n");
-	printf("Commands:\n");
-	printf("    add: Add a file to archive\n");
-	printf("         Returns the ID (=hash) of the file\n");
-	printf("\n");
-	printf("    get: Get a file by its ID (hash) from archive\n");
-	printf("         Returns the path of the file\n");
-	printf("\n");
-	printf("    copy: Get a file by its ID (hash) from archive\n");
-	printf("         Copy the file to another file\n");
-	printf("\n");
-	printf("Options:\n");
-	printf("    -c <path>   Config file.\n");
-	printf("\n");
-	printf("    -b <dir>    Storage base directory.\n");
-	printf("\n");
-	printf("    -s <suffix> Archive file suffix. This suffix will be appended to the archive file.\n");
-	printf("\n");
-	printf("    -p <path>   Password file for encoding. Can be NULL to explicity omit encoding.\n");
-	printf("\n");
-	printf("    -n          No meta data: No not create/update/save meta data file along with content file.\n");
-	printf("\n");
-	printf("    -v          verbosity (can be repeated to increase verbosity)\n");
-	printf("\n");
+    printf("Usage:\n");
+    printf("    archive [-c <config file>] [-v] [-b <storage base dir>] [-p <password file>] [-s <filename suffix>] [-n] add <file>\n");
+    printf("    archive [-c <config file>] [-v] [-b <storage base dir>] get <hash>\n");
+    printf("    archive [-c <config file>] [-v] [-b <storage base dir>] [-p <password file>] copy <hash> <file>\n");
+    printf("\n");
+    printf("Commands:\n");
+    printf("    add: Add a file to archive\n");
+    printf("         Returns the ID (=hash) of the file\n");
+    printf("\n");
+    printf("    get: Get a file by its ID (hash) from archive\n");
+    printf("         Returns the path of the file\n");
+    printf("\n");
+    printf("    copy: Get a file by its ID (hash) from archive\n");
+    printf("         Copy the file to another file\n");
+    printf("\n");
+    printf("Options:\n");
+    printf("    -c <path>   Config file.\n");
+    printf("\n");
+    printf("    -b <dir>    Storage base directory.\n");
+    printf("\n");
+    printf("    -s <suffix> Archive file suffix. This suffix will be appended to the archive file.\n");
+    printf("\n");
+    printf("    -p <path>   Password file for encoding. Can be NULL to explicity omit encoding.\n");
+    printf("\n");
+    printf("    -n          No meta data: No not create/update/save meta data file along with content file.\n");
+    printf("\n");
+    printf("    -v          verbosity (can be repeated to increase verbosity)\n");
+    printf("\n");
 }
 
 /**
@@ -112,71 +112,72 @@ void usage() {
  */
 void configure(int argc, char *argv[]) {
 
-	const char *options = "c:b:p:s:nv";
-	int c;
+    const char *options = "c:b:p:s:nv";
+    int c;
 
-	while ((c = getopt(argc, argv, options)) != -1) {
-		switch(c) {
+    while ((c = getopt(argc, argv, options)) != -1) {
+        switch (c) {
 
-		case 'c':
-			if( *optarg ) 
-				config_file = optarg;
-			break;
-		
-		case 'b':
-			storage_base_dir = optarg;
-			break;
+            case 'c':
+                if (*optarg)
+                    config_file = optarg;
+                break;
 
-		case 's':
-			archive_file_suffix = optarg;
-			break;
+            case 'b':
+                storage_base_dir = optarg;
+                break;
 
-		case 'p':
-			password_file = optarg;
-			if( strcmp(password_file, "NULL") != 0 ) { //Passing NULL to actively omit passwort (convinient for program mailarchiver to omit passwort)
-				struct stat file_stat;
-				if( stat(password_file, &file_stat) != 0 ) {
-					fprintf(stderr, "Password file not found: %s\n", password_file);
-					exit(EX_IOERR);
-				}
-			} else {
-				password_file = NULL;
-			}
-			break;
-			
-		case 'n':
-			save_metadata = 0;
-			break;
-			
-		case 'v':
-			verbosity++;
-		}
-	}
-	
-	
-	// Read config from file (if option 'c' is present):
-	if( config_file != NULL ) {
-		if( read_config(config_file, CONFIG_SECTION_NAME) == 0 ) {
-			
-			set_config(&hash_program, "hash_program", 1, 1, 1, verbosity);
-			
-			set_config(&copy_program, "copy_program", 1, 1, 1, verbosity);
-			set_config(&mkdir_program, "mkdir_program", 1, 1, 1, verbosity);
-			
-			set_config(&compress_program, "compress_program", 1, 1, 1, verbosity);
-			set_config(&uncompress_program, "uncompress_program", 1, 1, 1, verbosity);
-			
-			set_config(&password_file, "password_file", 1, 1, 1, verbosity);
-			set_config(&encode_program, "encode_program", 1, 1, 1, verbosity);
-			set_config(&decode_program, "decode_program", 1, 1, 1, verbosity);
-			
-			set_config(&storage_base_dir, "storage_base_dir", 1, 1, 1, verbosity);
-			set_config(&archive_file_suffix, "archive_file_suffix", 1, 1, 1, verbosity);
-			
-		} else {
-			exit(EX_IOERR);
-		}
-	}
+            case 's':
+                archive_file_suffix = optarg;
+                break;
+
+            case 'p':
+                password_file = optarg;
+                if (strcmp(password_file, "NULL") !=
+                    0) { //Passing NULL to actively omit passwort (convinient for program mailarchiver to omit passwort)
+                    struct stat file_stat;
+                    if (stat(password_file, &file_stat) != 0) {
+                        fprintf(stderr, "Password file not found: %s\n", password_file);
+                        exit(EX_IOERR);
+                    }
+                } else {
+                    password_file = NULL;
+                }
+                break;
+
+            case 'n':
+                save_metadata = 0;
+                break;
+
+            case 'v':
+                verbosity++;
+        }
+    }
+
+
+    // Read config from file (if option 'c' is present):
+    if (config_file != NULL) {
+        if (read_config(config_file, CONFIG_SECTION_NAME) == 0) {
+
+            set_config(&hash_program, "hash_program", 1, 1, 1, verbosity);
+
+            set_config(&copy_program, "copy_program", 1, 1, 1, verbosity);
+            set_config(&mkdir_program, "mkdir_program", 1, 1, 1, verbosity);
+
+            set_config(&compress_program, "compress_program", 1, 1, 1, verbosity);
+            set_config(&uncompress_program, "uncompress_program", 1, 1, 1, verbosity);
+
+            set_config(&password_file, "password_file", 1, 1, 1, verbosity);
+            set_config(&encode_program, "encode_program", 1, 1, 1, verbosity);
+            set_config(&decode_program, "decode_program", 1, 1, 1, verbosity);
+
+            set_config(&storage_base_dir, "storage_base_dir", 1, 1, 1, verbosity);
+            set_config(&archive_file_suffix, "archive_file_suffix", 1, 1, 1, verbosity);
+
+        } else {
+            exit(EX_IOERR);
+        }
+    }
 }
 
 /**
@@ -186,35 +187,35 @@ void configure(int argc, char *argv[]) {
  */
 char *create_hash(char *filename) {
 
-	char command[2048];
-	sprintf(command, "%s \"%s\"", hash_program, filename);
+    char command[2048];
+    sprintf(command, "%s \"%s\"", hash_program, filename);
 
-	FILE *cmd = popen(command, "r");
-	if( cmd == NULL ) {
-		fprintf(stderr, "Failed to execute: %s\n", command);
-		return NULL;
-	}
+    FILE *cmd = popen(command, "r");
+    if (cmd == NULL) {
+        fprintf(stderr, "Failed to execute: %s\n", command);
+        return NULL;
+    }
 
-	char *result = malloc(2048);
+    char *result = malloc(2048);
 
-	char line[2048];
-	while( fgets(line, sizeof(line), cmd) ) {
-		//printf("HASH> %s\n", line);
-		strcpy(result, line);
-	}
+    char line[2048];
+    while (fgets(line, sizeof(line), cmd)) {
+        //printf("HASH> %s\n", line);
+        strcpy(result, line);
+    }
 
-	if( feof(cmd) ) {
-		pclose(cmd);
-	} else {
-		fprintf(stderr, "Broken pipe: %s\n", command);
-	}
+    if (feof(cmd)) {
+        pclose(cmd);
+    } else {
+        fprintf(stderr, "Broken pipe: %s\n", command);
+    }
 
-	char *e = strchr(result, ' ');
-	if( e != NULL ) {
-		e[0] = '\0';
-	}
+    char *e = strchr(result, ' ');
+    if (e != NULL) {
+        e[0] = '\0';
+    }
 
-	return result;
+    return result;
 }
 
 /**
@@ -225,47 +226,47 @@ char *create_hash(char *filename) {
  */
 int cp(char *source, char *dest, int create_dir) {
 
-	char *command;
-	struct stat file_stat;
+    char *command;
+    struct stat file_stat;
 
-	if( create_dir == 1 ) {
-		char dirname[strlen(dest)+1];
-		strcpy(dirname, dest);
-		char *p = strrchr(dirname, '/');
-		if( p == NULL ) {
-			fprintf(stderr, "Invalid name (no dir name): %s\n", dest);
-			return -1;
-		}
-		p[0] = '\0';
+    if (create_dir == 1) {
+        char dirname[strlen(dest) + 1];
+        strcpy(dirname, dest);
+        char *p = strrchr(dirname, '/');
+        if (p == NULL) {
+            fprintf(stderr, "Invalid name (no dir name): %s\n", dest);
+            return -1;
+        }
+        p[0] = '\0';
 
 
-		if( stat(dirname, &file_stat) != 0 ) {
-			command = strreplace(mkdir_program, "{{dirname}}", dirname);
-			//printf("EXEC %s\n", command);
-			if( system(command) == 0 ) {
-				if( stat(dirname, &file_stat) != 0 ) {
-					fprintf(stderr, "Failed to create directory: %s\n", dirname);
-					return -1;
-				}
-			} else {
-				return -1;
-			}
-			free(command);
-		}
-	}
+        if (stat(dirname, &file_stat) != 0) {
+            command = strreplace(mkdir_program, "{{dirname}}", dirname);
+            //printf("EXEC %s\n", command);
+            if (system(command) == 0) {
+                if (stat(dirname, &file_stat) != 0) {
+                    fprintf(stderr, "Failed to create directory: %s\n", dirname);
+                    return -1;
+                }
+            } else {
+                return -1;
+            }
+            free(command);
+        }
+    }
 
-	command = strreplace(copy_program, "{{input_file}}", source);
-	command = strreplace_free(command, "{{output_file}}", dest);
-	//printf("EXEC %s\n", command);
-	if( system(command) == 0 ) {
-		if( stat(dest, &file_stat) != 0 )
-			return -1;
-		else
-			return 0;
-	} else {
-		return -1;
-	}
-	free(command);
+    command = strreplace(copy_program, "{{input_file}}", source);
+    command = strreplace_free(command, "{{output_file}}", dest);
+    //printf("EXEC %s\n", command);
+    if (system(command) == 0) {
+        if (stat(dest, &file_stat) != 0)
+            return -1;
+        else
+            return 0;
+    } else {
+        return -1;
+    }
+    free(command);
 }
 
 /**
@@ -273,49 +274,49 @@ int cp(char *source, char *dest, int create_dir) {
  */
 char *encode_file(char *filename) {
 
-	char *out_filename = filename; //Init if no encoding will be done below due to config
-	char *in_filename = filename;
-	char *command;
-	struct stat file_stat;
+    char *out_filename = filename; //Init if no encoding will be done below due to config
+    char *in_filename = filename;
+    char *command;
+    struct stat file_stat;
 
-	if( compress_program ) {
+    if (compress_program) {
 
-		char * tmp_filename = temp_filename("compressed-", "");
-		command = strreplace(compress_program, "{{input_file}}", in_filename);
-		command = strreplace_free(command, "{{output_file}}", tmp_filename);
-		//printf("EXEC %s\n", command);
+        char *tmp_filename = temp_filename("compressed-", "");
+        command = strreplace(compress_program, "{{input_file}}", in_filename);
+        command = strreplace_free(command, "{{output_file}}", tmp_filename);
+        //printf("EXEC %s\n", command);
 
-		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
-			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
-			exit(EX_IOERR);
-		} 
-		free(command);
+        if (system(command) != 0 || stat(tmp_filename, &file_stat) != 0) {
+            fprintf(stderr, "Failed to encode file: %s\n", in_filename);
+            exit(EX_IOERR);
+        }
+        free(command);
 
-		out_filename = tmp_filename;
-		in_filename = out_filename; //Input for next encoder step
-	}
+        out_filename = tmp_filename;
+        in_filename = out_filename; //Input for next encoder step
+    }
 
-	if( password_file && encode_program ) {
+    if (password_file && encode_program) {
 
-		char *tmp_filename = temp_filename("encoded-", "");
+        char *tmp_filename = temp_filename("encoded-", "");
 
-		char *command = strreplace(encode_program, "{{input_file}}", in_filename);
-		command = strreplace_free(command, "{{output_file}}", tmp_filename);
-		command = strreplace_free(command, "{{password_file}}", password_file);
-		//printf("EXEC %s\n", command);
+        char *command = strreplace(encode_program, "{{input_file}}", in_filename);
+        command = strreplace_free(command, "{{output_file}}", tmp_filename);
+        command = strreplace_free(command, "{{password_file}}", password_file);
+        //printf("EXEC %s\n", command);
 
-		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
-			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
-			exit(EX_IOERR);
-		} 
-		free(command);
+        if (system(command) != 0 || stat(tmp_filename, &file_stat) != 0) {
+            fprintf(stderr, "Failed to encode file: %s\n", in_filename);
+            exit(EX_IOERR);
+        }
+        free(command);
 
-		if( strcmp(in_filename, filename) != 0 )
-			unlink(in_filename); //Delete result from previous step
-		out_filename = tmp_filename;
-	}
+        if (strcmp(in_filename, filename) != 0)
+            unlink(in_filename); //Delete result from previous step
+        out_filename = tmp_filename;
+    }
 
-	return out_filename;
+    return out_filename;
 }
 
 /**
@@ -323,49 +324,49 @@ char *encode_file(char *filename) {
  */
 char *decode_file(char *filename) {
 
-	char *out_filename = filename; //Init if no decoding will be done below due to config
-	char *in_filename = filename;
-	char *command;
-	struct stat file_stat;
+    char *out_filename = filename; //Init if no decoding will be done below due to config
+    char *in_filename = filename;
+    char *command;
+    struct stat file_stat;
 
-	if( password_file && decode_program ) {
+    if (password_file && decode_program) {
 
-		char *tmp_filename = temp_filename("decoded-", "");
+        char *tmp_filename = temp_filename("decoded-", "");
 
-		char *command = strreplace(decode_program, "{{input_file}}", in_filename);
-		command = strreplace_free(command, "{{output_file}}", tmp_filename);
-		command = strreplace_free(command, "{{password_file}}", password_file);
-		//printf("EXEC %s\n", command);
+        char *command = strreplace(decode_program, "{{input_file}}", in_filename);
+        command = strreplace_free(command, "{{output_file}}", tmp_filename);
+        command = strreplace_free(command, "{{password_file}}", password_file);
+        //printf("EXEC %s\n", command);
 
-		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
-			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
-			exit(EX_IOERR);
-		} 
-		free(command);
+        if (system(command) != 0 || stat(tmp_filename, &file_stat) != 0) {
+            fprintf(stderr, "Failed to encode file: %s\n", in_filename);
+            exit(EX_IOERR);
+        }
+        free(command);
 
-		out_filename = tmp_filename;
-		in_filename = out_filename; //Input for next encoder step
-	}
+        out_filename = tmp_filename;
+        in_filename = out_filename; //Input for next encoder step
+    }
 
-	if( compress_program ) {
+    if (compress_program) {
 
-		char * tmp_filename = temp_filename("uncompressed-", "");
-		command = strreplace(uncompress_program, "{{input_file}}", in_filename);
-		command = strreplace_free(command, "{{output_file}}", tmp_filename);
-		//printf("EXEC %s\n", command);
+        char *tmp_filename = temp_filename("uncompressed-", "");
+        command = strreplace(uncompress_program, "{{input_file}}", in_filename);
+        command = strreplace_free(command, "{{output_file}}", tmp_filename);
+        //printf("EXEC %s\n", command);
 
-		if( system(command) != 0 || stat(tmp_filename, &file_stat) != 0 ) {
-			fprintf(stderr, "Failed to encode file: %s\n", in_filename);
-			exit(EX_IOERR);
-		} 
-		free(command);
+        if (system(command) != 0 || stat(tmp_filename, &file_stat) != 0) {
+            fprintf(stderr, "Failed to encode file: %s\n", in_filename);
+            exit(EX_IOERR);
+        }
+        free(command);
 
-		if( strcmp(in_filename, filename) != 0 )
-			unlink(in_filename); //Delete result from previous step
-		out_filename = tmp_filename;
-	}
+        if (strcmp(in_filename, filename) != 0)
+            unlink(in_filename); //Delete result from previous step
+        out_filename = tmp_filename;
+    }
 
-	return out_filename;
+    return out_filename;
 }
 
 
@@ -374,11 +375,11 @@ char *decode_file(char *filename) {
  * Exit program on failure
  */
 void init_storage() {
-	struct stat file_stat;
-	if( stat(storage_base_dir, &file_stat) != 0 ) {
-		fprintf(stderr, "Storage directory does not exist: %s\n", storage_base_dir);
-		exit(EX_IOERR);
-	}
+    struct stat file_stat;
+    if (stat(storage_base_dir, &file_stat) != 0) {
+        fprintf(stderr, "Storage directory does not exist: %s\n", storage_base_dir);
+        exit(EX_IOERR);
+    }
 }
 
 
@@ -389,47 +390,48 @@ void init_storage() {
  */
 char *find_archived_file(char *hash) {
 
-	DIR *d = opendir(storage_base_dir);
-	if( d == NULL ) {
-		fprintf(stderr, "Failed to open directory: \"%s\"\n", storage_base_dir);
-		return NULL;
-	}
+    DIR *d = opendir(storage_base_dir);
+    if (d == NULL) {
+        fprintf(stderr, "Failed to open directory: \"%s\"\n", storage_base_dir);
+        return NULL;
+    }
 
-	char subdir[STORAGE_SUBDIR_LENGTH+1];
-	memset(subdir, '\0', STORAGE_SUBDIR_LENGTH+1);
-	for(int i=0 ; i < STORAGE_SUBDIR_LENGTH ; i++ ) {
-		subdir[i] = hash[i];
-	}
+    char subdir[STORAGE_SUBDIR_LENGTH + 1];
+    memset(subdir, '\0', STORAGE_SUBDIR_LENGTH + 1);
+    for (int i = 0; i < STORAGE_SUBDIR_LENGTH; i++) {
+        subdir[i] = hash[i];
+    }
 
-	char *result = NULL;
-	struct stat file_stat;
+    char *result = NULL;
+    struct stat file_stat;
 
-	struct dirent *entry;
-	while ((entry = readdir(d)) != NULL) {
+    struct dirent *entry;
+    while ((entry = readdir(d)) != NULL) {
 
-		if( entry->d_name[0] == '\0' || strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 )
-			continue;
+        if (entry->d_name[0] == '\0' || strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
 
-		char curr[strlen(storage_base_dir) + strlen(entry->d_name) + 2];
-		sprintf(curr, "%s/%s", storage_base_dir, entry->d_name);
-		//printf("Looking for %s in %s\n", subdir, curr);
+        char curr[strlen(storage_base_dir) + strlen(entry->d_name) + 2];
+        sprintf(curr, "%s/%s", storage_base_dir, entry->d_name);
+        //printf("Looking for %s in %s\n", subdir, curr);
 
-		result = malloc(strlen(curr) + strlen(subdir) + strlen(hash) + 3 + (archive_file_suffix ? strlen(archive_file_suffix) : 0));
-		sprintf(result, "%s/%s/%s", curr, subdir, hash + STORAGE_SUBDIR_LENGTH);
-		
-		if( archive_file_suffix )
-			strcat(result, archive_file_suffix);
+        result = malloc(strlen(curr) + strlen(subdir) + strlen(hash) + 3 +
+                        (archive_file_suffix ? strlen(archive_file_suffix) : 0));
+        sprintf(result, "%s/%s/%s", curr, subdir, hash + STORAGE_SUBDIR_LENGTH);
 
-		if( stat(result, &file_stat) != 0 ) {
-			free(result);
-			result = NULL;
-		} else {
-			break;
-		}
-	}
-	closedir(d);
+        if (archive_file_suffix)
+            strcat(result, archive_file_suffix);
 
-	return result;
+        if (stat(result, &file_stat) != 0) {
+            free(result);
+            result = NULL;
+        } else {
+            break;
+        }
+    }
+    closedir(d);
+
+    return result;
 }
 
 /**
@@ -440,34 +442,34 @@ char *find_archived_file(char *hash) {
  */
 char *get_archive_filename(char *hash) {
 
-	char *result = malloc(MAX_ARCHIVE_PATH_LENGTH);
-	memset(result, '\0', MAX_ARCHIVE_PATH_LENGTH);
+    char *result = malloc(MAX_ARCHIVE_PATH_LENGTH);
+    memset(result, '\0', MAX_ARCHIVE_PATH_LENGTH);
 
-	time_t now = time(NULL);
-	char subdir[20];
-	sprintf(subdir, "%lx", now / 60 / 60 / 24 / 3);
+    time_t now = time(NULL);
+    char subdir[20];
+    sprintf(subdir, "%lx", now / 60 / 60 / 24 / 3);
 
-	sprintf(result, 
-			"%s/%s/", 
-			storage_base_dir,
-			subdir
-	);
+    sprintf(result,
+            "%s/%s/",
+            storage_base_dir,
+            subdir
+    );
 
 
-	int n = strlen(result);
-	for(int i=0 ; i < STORAGE_SUBDIR_LENGTH ; i++ ) {
-		result[n+i] = hash[i];
-	}
+    int n = strlen(result);
+    for (int i = 0; i < STORAGE_SUBDIR_LENGTH; i++) {
+        result[n + i] = hash[i];
+    }
 
-	strcat(result, "/");
-	strcat(result, hash+STORAGE_SUBDIR_LENGTH);
+    strcat(result, "/");
+    strcat(result, hash + STORAGE_SUBDIR_LENGTH);
 
-	if( archive_file_suffix )
-		strcat(result, archive_file_suffix);
+    if (archive_file_suffix)
+        strcat(result, archive_file_suffix);
 
-	//fprintf(stderr, "ARCHIVE FILE: %s\n", result);
+    //fprintf(stderr, "ARCHIVE FILE: %s\n", result);
 
-	return result;
+    return result;
 }
 
 /**
@@ -475,45 +477,45 @@ char *get_archive_filename(char *hash) {
  */
 void copy_from_archive(int argc, char *argv[]) {
 
-	if (argc - optind +1 < 4) {
-		fprintf(stderr, "Missing arguments\n");
-		usage();
-		exit(EX_USAGE);
-	}
+    if (argc - optind + 1 < 4) {
+        fprintf(stderr, "Missing arguments\n");
+        usage();
+        exit(EX_USAGE);
+    }
 
-	char *hash = argv[optind + 1];
-	if( strlen(hash) <= STORAGE_SUBDIR_LENGTH ) {
-		fprintf(stderr, "Invliad hash\n");
-		exit(EX_USAGE);
-	}
+    char *hash = argv[optind + 1];
+    if (strlen(hash) <= STORAGE_SUBDIR_LENGTH) {
+        fprintf(stderr, "Invliad hash\n");
+        exit(EX_USAGE);
+    }
 
-	char *destination = argv[optind + 2];
-	struct stat file_stat;
-	if( stat(destination, &file_stat) == 0 ) {
-		fprintf(stderr, "Destination file already exists: %s\n", destination);
-		exit(EX_IOERR);
-	}
+    char *destination = argv[optind + 2];
+    struct stat file_stat;
+    if (stat(destination, &file_stat) == 0) {
+        fprintf(stderr, "Destination file already exists: %s\n", destination);
+        exit(EX_IOERR);
+    }
 
-	char *archive_file = find_archived_file(hash);
-	if( archive_file != NULL ) {
+    char *archive_file = find_archived_file(hash);
+    if (archive_file != NULL) {
 
-		if( decode_program || uncompress_program ) {
-			char *tmp_file = decode_file(archive_file);
-			cp(tmp_file, destination, 0);
-			unlink(tmp_file);
-			free(tmp_file);
-		} else {
-			cp(archive_file, destination, 0);
-		}
+        if (decode_program || uncompress_program) {
+            char *tmp_file = decode_file(archive_file);
+            cp(tmp_file, destination, 0);
+            unlink(tmp_file);
+            free(tmp_file);
+        } else {
+            cp(archive_file, destination, 0);
+        }
 
-		printf("%s\n", destination);
-		free(archive_file);
+        printf("%s\n", destination);
+        free(archive_file);
 
-	} else {
+    } else {
 
-		fprintf(stderr, "NOT FOUND: %s\n", hash);
+        fprintf(stderr, "NOT FOUND: %s\n", hash);
 
-	}
+    }
 
 }
 
@@ -522,23 +524,23 @@ void copy_from_archive(int argc, char *argv[]) {
  */
 void get_from_archive(int argc, char *argv[]) {
 
-	char *hash = argv[optind + 1];
-	if( strlen(hash) <= STORAGE_SUBDIR_LENGTH ) {
-		fprintf(stderr, "Invalid hash\n");
-		exit(EX_USAGE);
-	}
+    char *hash = argv[optind + 1];
+    if (strlen(hash) <= STORAGE_SUBDIR_LENGTH) {
+        fprintf(stderr, "Invalid hash\n");
+        exit(EX_USAGE);
+    }
 
-	char *archive_file = find_archived_file(hash);
-	if( archive_file != NULL ) {
+    char *archive_file = find_archived_file(hash);
+    if (archive_file != NULL) {
 
-		printf("%s\n", archive_file);
-		free(archive_file);
+        printf("%s\n", archive_file);
+        free(archive_file);
 
-	} else {
+    } else {
 
-		fprintf(stderr, "NOT FOUND: %s\n", hash);
+        fprintf(stderr, "NOT FOUND: %s\n", hash);
 
-	}
+    }
 }
 
 /**
@@ -546,78 +548,78 @@ void get_from_archive(int argc, char *argv[]) {
  */
 void add_to_archive(int argc, char *argv[]) {
 
-	char *filename = argv[optind + 1];
-	struct stat file_stat;
-	if( stat(filename, &file_stat) != 0 ) {
-		fprintf(stderr, "File not found: %s\n", filename);
-		exit(EX_IOERR);
-	}
+    char *filename = argv[optind + 1];
+    struct stat file_stat;
+    if (stat(filename, &file_stat) != 0) {
+        fprintf(stderr, "File not found: %s\n", filename);
+        exit(EX_IOERR);
+    }
 
-	char *hash = create_hash(filename);
-	if( hash == NULL || strlen(hash) < 8 ) {
-		fprintf(stderr, "Invalid hash: '%s'\n", hash);
-		exit(EX_IOERR);
-	}
+    char *hash = create_hash(filename);
+    if (hash == NULL || strlen(hash) < 8) {
+        fprintf(stderr, "Invalid hash: '%s'\n", hash);
+        exit(EX_IOERR);
+    }
 
-	char *archive_file = find_archived_file(hash);
+    char *archive_file = find_archived_file(hash);
 
-	if( archive_file != NULL ) {
+    if (archive_file != NULL) {
 
-		//File already exists in archive, print hash only
+        //File already exists in archive, print hash only
 
-		printf("%s\n", hash);
-		free(archive_file);
+        printf("%s\n", hash);
+        free(archive_file);
 
-	} else {
+    } else {
 
-		//File does not exist in archive
+        //File does not exist in archive
 
-		char *source_file;
-		int delete_source_file = 0;
-		if( encode_program || compress_program ) {
-			source_file = encode_file(filename);
-			delete_source_file = 1;
-		} else {
-			source_file = malloc(strlen(filename)+1);
-			strcpy(source_file, filename);
-			delete_source_file = 0;
-		}
+        char *source_file;
+        int delete_source_file = 0;
+        if (encode_program || compress_program) {
+            source_file = encode_file(filename);
+            delete_source_file = 1;
+        } else {
+            source_file = malloc(strlen(filename) + 1);
+            strcpy(source_file, filename);
+            delete_source_file = 0;
+        }
 
-		archive_file = get_archive_filename(hash);
-		//printf("CREATE: \"%s\"\n", archive_file);
+        archive_file = get_archive_filename(hash);
+        //printf("CREATE: \"%s\"\n", archive_file);
 
-		if( cp(source_file, archive_file, 1) != 0 ) {
+        if (cp(source_file, archive_file, 1) != 0) {
 
-			fprintf(stderr, "Failed to copy file: \"%s\" to \"%s\"\n", filename, archive_file);
+            fprintf(stderr, "Failed to copy file: \"%s\" to \"%s\"\n", filename, archive_file);
 
-		} else {
+        } else {
 
-			if( save_metadata != 0 ) {
+            if (save_metadata != 0) {
 
-				char metadata_file[strlen(archive_file) + strlen(METADATA_FILE_EXTENSION)+1];
-				sprintf(metadata_file, "%s%s", archive_file, METADATA_FILE_EXTENSION);
-				//printf("CREATE: \"%s\"\n", metadata_file);
+                char metadata_file[strlen(archive_file) + strlen(METADATA_FILE_EXTENSION) + 1];
+                sprintf(metadata_file, "%s%s", archive_file, METADATA_FILE_EXTENSION);
+                //printf("CREATE: \"%s\"\n", metadata_file);
 
-				FILE *fp = fopen(metadata_file, "w");
-				if( fp == NULL ) {
-					fprintf(stderr, "Failed to create meta file\n");
-					exit(EX_IOERR);
-				} else {
-					fprintf(fp, "NAME: %s\n", filename);
-					fprintf(fp, "ADDED: %li\n", time(NULL));
-					fprintf(fp, "MTIME: %li\n", file_stat.st_mtime);
-					fprintf(fp, "CTIME: %li\n", file_stat.st_ctime);
-					fclose(fp);
-				}
-			}
+                FILE *fp = fopen(metadata_file, "w");
+                if (fp == NULL) {
+                    fprintf(stderr, "Failed to create meta file\n");
+                    exit(EX_IOERR);
+                } else {
+                    fprintf(fp, "NAME: %s\n", filename);
+                    fprintf(fp, "ADDED: %li\n", time(NULL));
+                    fprintf(fp, "MTIME: %li\n", file_stat.st_mtime);
+                    fprintf(fp, "CTIME: %li\n", file_stat.st_ctime);
+                    fclose(fp);
+                }
+            }
 
-			printf("%s\n", hash);
-		}
+            printf("%s\n", hash);
+        }
 
-		if( delete_source_file == 1 )
-			unlink(source_file);
-		free(source_file);
-	}
+        if (delete_source_file == 1)
+            unlink(source_file);
+        free(source_file);
+    }
 }
 
 /**
@@ -625,26 +627,26 @@ void add_to_archive(int argc, char *argv[]) {
  */
 int main(int argc, char *argv[]) {
 
-	configure(argc, argv);
+    configure(argc, argv);
 
-	if (argc - optind +1 < 3) {
-		fprintf(stderr, "Missing arguments\n");
-		usage();
-		exit(EX_USAGE);
-	}
+    if (argc - optind + 1 < 3) {
+        fprintf(stderr, "Missing arguments\n");
+        usage();
+        exit(EX_USAGE);
+    }
 
-	init_storage();
+    init_storage();
 
-	char *cmd = argv[optind];
+    char *cmd = argv[optind];
 
-	if( strcasecmp(cmd, "add") == 0 ) {
-		add_to_archive(argc, argv);
-	} else if( strcasecmp(cmd, "get") == 0 ) {
-		get_from_archive(argc, argv);
-	} else if( strcasecmp(cmd, "copy") == 0 ) {
-		copy_from_archive(argc, argv);
-	} else {
-		fprintf(stderr, "Unknown command: %s\n", cmd);
-		exit(EX_USAGE);
-	}
+    if (strcasecmp(cmd, "add") == 0) {
+        add_to_archive(argc, argv);
+    } else if (strcasecmp(cmd, "get") == 0) {
+        get_from_archive(argc, argv);
+    } else if (strcasecmp(cmd, "copy") == 0) {
+        copy_from_archive(argc, argv);
+    } else {
+        fprintf(stderr, "Unknown command: %s\n", cmd);
+        exit(EX_USAGE);
+    }
 }
